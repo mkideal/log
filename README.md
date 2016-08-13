@@ -80,3 +80,14 @@ func main() {
 * **Info**(*format string, args ...interface{}*) - Print if level >= INFO
 * **Debug**(*format string, args ...interface{}*) - Print if level >= DEBUG
 * **Trace**(*format string, args ...interface{}*) - Print if level >= TRACE
+
+Examples:
+
+```go
+log.Trace("hello %s", "TRACE")
+log.Debug("hello %s", "DEBUG")
+log.Info("hello %s", "INFO")
+log.Warn("hello %s", "WARN")
+log.Error("hello %s", "ERROR")
+log.Fatak("bye bye %s", "FATAL")
+```
