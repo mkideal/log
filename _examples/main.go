@@ -1,16 +1,25 @@
 package main
 
 import (
+	"flag"
 	"os"
 	"os/signal"
 	"sync/atomic"
+	"time"
 
 	"github.com/mkideal/log"
+)
+
+var (
+	flInterval = flag.Int("i", 0, "interval of writting logs")
 )
 
 func main() {
 	defer log.Uninit(log.InitFile("./log/app.log"))
 	log.SetLevel(log.TRACE)
+
+	flag.Parse()
+	d := time.Duration(*flInterval) * time.Second
 
 	running := int32(1)
 	go func() {
@@ -20,6 +29,9 @@ func main() {
 			log.Info("hello %s", "Info")
 			log.Warn("hello %s", "Warn")
 			log.Error("hello %s", "Error")
+			if d > 0 {
+				time.Sleep(d)
+			}
 		}
 	}()
 

@@ -28,9 +28,10 @@ type FileConfig struct {
 }
 
 func NewFileConfig() FileConfig {
+	_, appName := filepath.Split(os.Args[0])
 	return FileConfig{
 		Dir:      ".",
-		Filename: os.Args[0] + ".log",
+		Filename: appName + ".log",
 		MaxSize:  1 << 26, // 64M
 	}
 }
@@ -42,9 +43,10 @@ type File struct {
 	fileIndex        int
 	onceCreateLogDir sync.Once
 
-	mu     sync.Mutex
-	writer *bufio.Writer
-	file   *os.File
+	mu      sync.Mutex
+	writer  *bufio.Writer
+	file    *os.File
+	written bool
 }
 
 func NewFile(opts string) logger.Provider {
@@ -58,8 +60,11 @@ func NewFile(opts string) logger.Provider {
 	go func(f *File) {
 		for range time.Tick(time.Second) {
 			f.mu.Lock()
-			f.writer.Flush()
-			f.file.Sync()
+			if f.written {
+				f.writer.Flush()
+				f.file.Sync()
+				f.written = false
+			}
 			f.mu.Unlock()
 		}
 	}(p)
@@ -80,6 +85,7 @@ func (p *File) Write(level logger.Level, headerLength int, data []byte) error {
 		}
 	}
 	n, err := p.writer.Write(data)
+	p.written = true
 	p.currentSize += n
 	if p.currentSize >= p.config.MaxSize {
 		p.rotate(now)
@@ -87,23 +93,24 @@ func (p *File) Write(level logger.Level, headerLength int, data []byte) error {
 	return err
 }
 
-func (p *File) Close() {
-	p.mu.Lock()
+func (p *File) closeCurrent() {
 	if p.writer != nil {
 		p.writer.Flush()
 		p.file.Sync()
 		p.file.Close()
+		p.written = false
 	}
+	p.currentSize = 0
+}
+
+func (p *File) Close() {
+	p.mu.Lock()
+	p.closeCurrent()
 	p.mu.Unlock()
 }
 
 func (p *File) rotate(now time.Time) error {
-	if p.writer != nil {
-		p.writer.Flush()
-		p.file.Sync()
-		p.file.Close()
-	}
-	p.currentSize = 0
+	p.closeCurrent()
 	if isSameDay(now, p.createdTime) {
 		p.fileIndex = (p.fileIndex + 1) % 1000
 	} else {
@@ -123,6 +130,8 @@ func (p *File) rotate(now time.Time) error {
 	fmt.Fprintf(&buf, "Built with %s %s for %s/%s\n", runtime.Compiler, runtime.Version(), runtime.GOOS, runtime.GOARCH)
 	n, err := p.file.Write(buf.Bytes())
 	p.currentSize += n
+	p.writer.Flush()
+	p.file.Sync()
 	return err
 }
 
