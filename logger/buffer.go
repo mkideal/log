@@ -10,6 +10,7 @@ type buffer struct {
 	next         *buffer
 	level        LogLevel
 	headerLength int
+	quit         bool
 }
 
 const digits = "0123456789"

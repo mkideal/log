@@ -29,6 +29,12 @@ func (p *mixProvider) Write(level logger.LogLevel, headerLength int, data []byte
 	return err.Err()
 }
 
+func (p *mixProvider) Close() {
+	for _, op := range p.providers {
+		op.Close()
+	}
+}
+
 type errorList struct {
 	errs []error
 }

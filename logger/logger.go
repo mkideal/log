@@ -11,6 +11,7 @@ import (
 
 type Logger interface {
 	Run()
+	Quit()
 	GetLevel() LogLevel
 	SetLevel(level LogLevel)
 	Trace(calldepth int, format string, args ...interface{})
@@ -22,6 +23,7 @@ type Logger interface {
 
 type Provider interface {
 	Write(level LogLevel, headerLength int, data []byte) error
+	Close()
 }
 
 type logger struct {
@@ -32,6 +34,7 @@ type logger struct {
 	bufferList       *buffer
 
 	writeQueue chan *buffer
+	quitNotify chan struct{}
 }
 
 func NewLogger(provider Provider) Logger {
@@ -43,16 +46,27 @@ func newLogger(provider Provider) *logger {
 		provider:   provider,
 		bufferList: new(buffer),
 		writeQueue: make(chan *buffer, 8192),
+		quitNotify: make(chan struct{}),
 	}
 }
 
 func (l *logger) Run() {
 	go func() {
 		for buf := range l.writeQueue {
+			if buf.quit {
+				break
+			}
 			l.provider.Write(buf.level, buf.headerLength, buf.Bytes())
 			l.putBuffer(buf)
 		}
+		l.quitNotify <- struct{}{}
 	}()
+}
+
+func (l *logger) Quit() {
+	l.writeQueue <- &buffer{quit: true}
+	<-l.quitNotify
+	l.provider.Close()
 }
 
 func (l *logger) getBuffer() *buffer {

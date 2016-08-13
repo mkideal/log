@@ -15,6 +15,7 @@ func NewStdLogger() Logger {
 }
 
 func (l *stdLogger) Run()                    {}
+func (l *stdLogger) Quit()                   {}
 func (l *stdLogger) GetLevel() LogLevel      { return LogLevel(atomic.LoadInt32((*int32)(l))) }
 func (l *stdLogger) SetLevel(level LogLevel) { atomic.StoreInt32((*int32)(l), int32(level)) }
 

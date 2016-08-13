@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 	"sync"
 	"time"
@@ -16,6 +17,9 @@ import (
 
 var (
 	ErrWriterIsNil = errors.New("writer is nil")
+
+	onceCreateLogDir sync.Once
+	pid              = os.Getpid()
 )
 
 type fileConfig struct {
@@ -27,7 +31,7 @@ type fileConfig struct {
 func newFileConfig() fileConfig {
 	return fileConfig{
 		Dir:      ".",
-		Filename: os.Args[0],
+		Filename: os.Args[0] + ".log",
 		MaxSize:  1 << 26, // 64M
 	}
 }
@@ -72,7 +76,9 @@ func (p *File) Write(level logger.LogLevel, headerLength int, data []byte) error
 			return err
 		}
 	}
+	p.mu.Lock()
 	n, err := p.writer.Write(data)
+	p.mu.Unlock()
 	p.currentSize += n
 	if p.currentSize >= p.config.MaxSize {
 		p.rotate(now)
@@ -80,17 +86,29 @@ func (p *File) Write(level logger.LogLevel, headerLength int, data []byte) error
 	return err
 }
 
+func (p *File) Close() {
+	p.mu.Lock()
+	if p.writer != nil {
+		p.writer.Flush()
+		p.file.Sync()
+		p.file.Close()
+	}
+	p.mu.Unlock()
+}
+
 func (p *File) rotate(now time.Time) error {
+	println(now.Format("2006/01/02 15:04:05"))
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
 	if p.writer != nil {
 		p.writer.Flush()
+		p.file.Sync()
 		p.file.Close()
 	}
 	p.currentSize = 0
 	if isSameDay(now, p.createdTime) {
-		p.fileIndex++
+		p.fileIndex = (p.fileIndex + 1) % 1000
 	} else {
 		p.fileIndex = 0
 	}
@@ -102,7 +120,7 @@ func (p *File) rotate(now time.Time) error {
 		return err
 	}
 
-	p.writer = bufio.NewWriterSize(p.file, p.config.MaxSize)
+	p.writer = bufio.NewWriterSize(p.file, 1<<14) // 16k
 	var buf bytes.Buffer
 	fmt.Fprintf(&buf, "File created at: %s\n", now.Format("2006/01/02 15:04:05"))
 	fmt.Fprintf(&buf, "Built with %s %s for %s/%s\n", runtime.Compiler, runtime.Version(), runtime.GOOS, runtime.GOARCH)
@@ -112,7 +130,22 @@ func (p *File) rotate(now time.Time) error {
 }
 
 func (p *File) create() (*os.File, error) {
-	return nil, nil
+	onceCreateLogDir.Do(p.createDir)
+	year, month, day := p.createdTime.Date()
+	hour, minute, _ := p.createdTime.Clock()
+	name := fmt.Sprintf("%s.%04d%02d%02d-%02d%02d.%06d.%03d", p.config.Filename, year, int(month), day, hour, minute, pid, p.fileIndex)
+	fullname := filepath.Join(p.config.Dir, name)
+	f, err := os.Create(fullname)
+	if err == nil {
+		symlink := filepath.Join(p.config.Dir, p.config.Filename)
+		os.Remove(symlink)
+		os.Symlink(name, symlink)
+	}
+	return f, err
+}
+
+func (p *File) createDir() {
+	os.MkdirAll(p.config.Dir, 0755)
 }
 
 func isSameDay(t1, t2 time.Time) bool {

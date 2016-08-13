@@ -11,17 +11,23 @@ import (
 // global logger
 var glogger = logger.NewStdLogger()
 
-func InitWithCustomLogger(l logger.Logger) {
+func Uninit(err error) {
+	glogger.Quit()
+}
+
+func InitWithCustomLogger(l logger.Logger) error {
 	glogger = l
 	glogger.Run()
+	return nil
 }
 
-func InitWithCustomProvider(p logger.Provider) {
+func InitWithCustomProvider(p logger.Provider) error {
 	glogger := logger.NewLogger(p)
 	glogger.Run()
+	return nil
 }
 
-func InitWithFile(level logger.LogLevel, logfile string) {
+func InitWithFile(level logger.LogLevel, logfile string) error {
 	dir, file := filepath.Split(logfile)
 	if dir == "" {
 		dir = "."
@@ -29,6 +35,7 @@ func InitWithFile(level logger.LogLevel, logfile string) {
 	glogger = logger.NewLogger(provider.NewFile(fmt.Sprintf(`{"dir":"%s","filename":"%s"}`, dir, file)))
 	glogger.SetLevel(level)
 	glogger.Run()
+	return nil
 }
 
 func GetLevel() logger.LogLevel                { return glogger.GetLevel() }

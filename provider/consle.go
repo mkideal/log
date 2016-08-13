@@ -31,3 +31,5 @@ func (p *Console) Write(level logger.LogLevel, headerLength int, data []byte) er
 	_, err := p.stdout.Write(data)
 	return err
 }
+
+func (p *Console) Close() {}
