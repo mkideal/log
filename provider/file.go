@@ -97,7 +97,6 @@ func (p *File) Close() {
 }
 
 func (p *File) rotate(now time.Time) error {
-	println(now.Format("2006/01/02 15:04:05"))
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
