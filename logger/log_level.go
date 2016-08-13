@@ -1,4 +1,4 @@
-package log
+package logger
 
 type LogLevel int32
 
@@ -40,4 +40,12 @@ func ParseLogLevel(s string) (lv LogLevel, ok bool) {
 		return ERROR, true
 	}
 	return
+}
+
+func MustParseLogLevel(s string) LogLevel {
+	lv, ok := ParseLogLevel(s)
+	if !ok {
+		panic("ParseLogLevel " + s + " fail")
+	}
+	return lv
 }

@@ -1,0 +1,174 @@
+package logger
+
+import (
+	"fmt"
+	"runtime"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"time"
+)
+
+type Logger interface {
+	Run()
+	GetLevel() LogLevel
+	SetLevel(level LogLevel)
+	Trace(calldepth int, format string, args ...interface{})
+	Debug(calldepth int, format string, args ...interface{})
+	Info(calldepth int, format string, args ...interface{})
+	Warn(calldepth int, format string, args ...interface{})
+	Error(calldepth int, format string, args ...interface{})
+}
+
+type Provider interface {
+	Write(level LogLevel, headerLength int, data []byte) error
+}
+
+type logger struct {
+	level    LogLevel
+	provider Provider
+
+	bufferListLocker sync.Mutex
+	bufferList       *buffer
+
+	writeQueue chan *buffer
+}
+
+func NewLogger(provider Provider) Logger {
+	return newLogger(provider)
+}
+
+func newLogger(provider Provider) *logger {
+	return &logger{
+		provider:   provider,
+		bufferList: new(buffer),
+		writeQueue: make(chan *buffer, 8192),
+	}
+}
+
+func (l *logger) Run() {
+	go func() {
+		for buf := range l.writeQueue {
+			l.provider.Write(buf.level, buf.headerLength, buf.Bytes())
+			l.putBuffer(buf)
+		}
+	}()
+}
+
+func (l *logger) getBuffer() *buffer {
+	l.bufferListLocker.Lock()
+	if b := l.bufferList; b != nil {
+		l.bufferList = b.next
+		b.next = nil
+		b.Reset()
+		l.bufferListLocker.Unlock()
+		return b
+	}
+	l.bufferListLocker.Unlock()
+	return new(buffer)
+}
+
+func (l *logger) putBuffer(buf *buffer) {
+	if buf.Len() > 256 { //FIXME
+		return
+	}
+	l.bufferListLocker.Lock()
+	buf.next = l.bufferList
+	l.bufferList = buf
+	l.bufferListLocker.Unlock()
+}
+
+// [L yyyy/MM/dd hh:mm:ss.uuu file:line]
+func (l *logger) formatHeader(now time.Time, level LogLevel, file string, line int) *buffer {
+	if line < 0 {
+		line = 0
+	}
+	var (
+		buf                  = l.getBuffer()
+		year, month, day     = now.Date()
+		hour, minute, second = now.Clock()
+		millisecond          = now.Nanosecond() / 1000000
+	)
+	buf.tmp[0] = '['
+	buf.tmp[1] = level.String()[0]
+	buf.tmp[2] = ' '
+	fourDigits(buf, 3, year)
+	buf.tmp[7] = '/'
+	twoDigits(buf, 8, int(month))
+	buf.tmp[10] = '/'
+	twoDigits(buf, 11, day)
+	buf.tmp[13] = ' '
+	twoDigits(buf, 14, hour)
+	buf.tmp[16] = ':'
+	twoDigits(buf, 17, minute)
+	buf.tmp[19] = ':'
+	twoDigits(buf, 20, second)
+	buf.tmp[22] = '.'
+	threeDigits(buf, 23, millisecond)
+	buf.tmp[26] = ' '
+	buf.Write(buf.tmp[:27])
+	buf.WriteString(file)
+	buf.tmp[0] = ':'
+	n := someDigits(buf, 1, line)
+	buf.tmp[n+1] = ']'
+	buf.tmp[n+2] = ' '
+	buf.Write(buf.tmp[:n+3])
+
+	return buf
+}
+
+func (l *logger) header(level LogLevel, calldepth int) (*buffer, string, int) {
+	_, file, line, ok := runtime.Caller(calldepth)
+	if !ok {
+		file = "???"
+		line = 0
+	} else {
+		slash := strings.LastIndex(file, "/")
+		if slash >= 0 {
+			file = file[slash+1:]
+		}
+	}
+	return l.formatHeader(time.Now(), level, file, line), file, line
+}
+
+func (l *logger) printDepth(level LogLevel, calldepth int, format string, args ...interface{}) {
+	buf, _, _ := l.header(level, calldepth+3)
+	buf.headerLength = buf.Len()
+	fmt.Fprintf(buf, format, args...)
+	if buf.Bytes()[buf.Len()-1] != '\n' {
+		buf.WriteByte('\n')
+	}
+	buf.level = level
+	l.writeQueue <- buf
+}
+
+func (l *logger) GetLevel() LogLevel   { return LogLevel(atomic.LoadInt32((*int32)(&l.level))) }
+func (l *logger) SetLevel(lv LogLevel) { atomic.StoreInt32((*int32)(&l.level), int32(lv)) }
+
+func (l *logger) Trace(calldepth int, format string, args ...interface{}) {
+	if l.GetLevel() >= TRACE {
+		l.printDepth(TRACE, calldepth, format, args...)
+	}
+}
+
+func (l *logger) Debug(calldepth int, format string, args ...interface{}) {
+	if l.GetLevel() >= DEBUG {
+		l.printDepth(DEBUG, calldepth, format, args...)
+	}
+}
+
+func (l *logger) Info(calldepth int, format string, args ...interface{}) {
+	if l.GetLevel() >= INFO {
+		l.printDepth(INFO, calldepth, format, args...)
+	}
+}
+
+func (l *logger) Warn(calldepth int, format string, args ...interface{}) {
+	if l.GetLevel() >= WARN {
+		l.printDepth(WARN, calldepth, format, args...)
+	}
+}
+
+func (l *logger) Error(calldepth int, format string, args ...interface{}) {
+	l.printDepth(ERROR, calldepth, format, args...)
+}
