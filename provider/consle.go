@@ -13,7 +13,7 @@ type Console struct {
 }
 
 func NewConsole() logger.Provider {
-	return NewConsoleWithWriter(os.Stdout, os.Stdout)
+	return NewConsoleWithWriter(os.Stdout, os.Stderr)
 }
 
 func NewConsoleWithWriter(stdout, stderr io.Writer) logger.Provider {
@@ -23,7 +23,7 @@ func NewConsoleWithWriter(stdout, stderr io.Writer) logger.Provider {
 	}
 }
 
-func (p *Console) Write(level logger.LogLevel, headerLength int, data []byte) error {
+func (p *Console) Write(level logger.Level, headerLength int, data []byte) error {
 	if level == logger.ERROR {
 		_, err := p.stderr.Write(data)
 		return err

@@ -18,18 +18,17 @@ import (
 var (
 	ErrWriterIsNil = errors.New("writer is nil")
 
-	onceCreateLogDir sync.Once
-	pid              = os.Getpid()
+	pid = os.Getpid()
 )
 
-type fileConfig struct {
+type FileConfig struct {
 	Dir      string `json:"dir"`
 	Filename string `json:"filename"`
-	MaxSize  int    `json:"max_size"`
+	MaxSize  int    `json:"maxsize"`
 }
 
-func newFileConfig() fileConfig {
-	return fileConfig{
+func NewFileConfig() FileConfig {
+	return FileConfig{
 		Dir:      ".",
 		Filename: os.Args[0] + ".log",
 		MaxSize:  1 << 26, // 64M
@@ -37,10 +36,11 @@ func newFileConfig() fileConfig {
 }
 
 type File struct {
-	config      fileConfig
-	currentSize int
-	createdTime time.Time
-	fileIndex   int
+	config           FileConfig
+	currentSize      int
+	createdTime      time.Time
+	fileIndex        int
+	onceCreateLogDir sync.Once
 
 	mu     sync.Mutex
 	writer *bufio.Writer
@@ -48,7 +48,7 @@ type File struct {
 }
 
 func NewFile(opts string) logger.Provider {
-	config := newFileConfig()
+	config := NewFileConfig()
 	json.Unmarshal([]byte(opts), &config)
 	p := &File{
 		config:    config,
@@ -66,7 +66,10 @@ func NewFile(opts string) logger.Provider {
 	return p
 }
 
-func (p *File) Write(level logger.LogLevel, headerLength int, data []byte) error {
+func (p *File) Write(level logger.Level, headerLength int, data []byte) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	if p.writer == nil {
 		return ErrWriterIsNil
 	}
@@ -76,9 +79,7 @@ func (p *File) Write(level logger.LogLevel, headerLength int, data []byte) error
 			return err
 		}
 	}
-	p.mu.Lock()
 	n, err := p.writer.Write(data)
-	p.mu.Unlock()
 	p.currentSize += n
 	if p.currentSize >= p.config.MaxSize {
 		p.rotate(now)
@@ -97,9 +98,6 @@ func (p *File) Close() {
 }
 
 func (p *File) rotate(now time.Time) error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
 	if p.writer != nil {
 		p.writer.Flush()
 		p.file.Sync()
@@ -129,10 +127,10 @@ func (p *File) rotate(now time.Time) error {
 }
 
 func (p *File) create() (*os.File, error) {
-	onceCreateLogDir.Do(p.createDir)
-	year, month, day := p.createdTime.Date()
-	hour, minute, _ := p.createdTime.Clock()
-	name := fmt.Sprintf("%s.%04d%02d%02d-%02d%02d.%06d.%03d", p.config.Filename, year, int(month), day, hour, minute, pid, p.fileIndex)
+	p.onceCreateLogDir.Do(p.createDir)
+	y, m, d := p.createdTime.Date()
+	H, M, _ := p.createdTime.Clock()
+	name := fmt.Sprintf("%s.%04d%02d%02d-%02d%02d.%06d.%03d", p.config.Filename, y, m, d, H, M, pid, p.fileIndex)
 	fullname := filepath.Join(p.config.Dir, name)
 	f, err := os.Create(fullname)
 	if err == nil {

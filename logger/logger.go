@@ -2,6 +2,7 @@ package logger
 
 import (
 	"fmt"
+	"os"
 	"runtime"
 	"strings"
 	"sync"
@@ -12,22 +13,24 @@ import (
 type Logger interface {
 	Run()
 	Quit()
-	GetLevel() LogLevel
-	SetLevel(level LogLevel)
+	GetLevel() Level
+	SetLevel(level Level)
 	Trace(calldepth int, format string, args ...interface{})
 	Debug(calldepth int, format string, args ...interface{})
 	Info(calldepth int, format string, args ...interface{})
 	Warn(calldepth int, format string, args ...interface{})
 	Error(calldepth int, format string, args ...interface{})
+	Fatal(calldepth int, format string, args ...interface{})
 }
 
 type Provider interface {
-	Write(level LogLevel, headerLength int, data []byte) error
+	Write(level Level, headerLength int, data []byte) error
 	Close()
 }
 
+// logger implements Logger interface
 type logger struct {
-	level    LogLevel
+	level    Level
 	provider Provider
 
 	bufferListLocker sync.Mutex
@@ -57,6 +60,10 @@ func (l *logger) Run() {
 				break
 			}
 			l.provider.Write(buf.level, buf.headerLength, buf.Bytes())
+			if buf.level == FATAL {
+				l.provider.Close()
+				os.Exit(1)
+			}
 			l.putBuffer(buf)
 		}
 		l.quitNotify <- struct{}{}
@@ -93,7 +100,7 @@ func (l *logger) putBuffer(buf *buffer) {
 }
 
 // [L yyyy/MM/dd hh:mm:ss.uuu file:line]
-func (l *logger) formatHeader(now time.Time, level LogLevel, file string, line int) *buffer {
+func (l *logger) formatHeader(now time.Time, level Level, file string, line int) *buffer {
 	if line < 0 {
 		line = 0
 	}
@@ -131,7 +138,7 @@ func (l *logger) formatHeader(now time.Time, level LogLevel, file string, line i
 	return buf
 }
 
-func (l *logger) header(level LogLevel, calldepth int) (*buffer, string, int) {
+func (l *logger) header(level Level, calldepth int) *buffer {
 	_, file, line, ok := runtime.Caller(calldepth)
 	if !ok {
 		file = "???"
@@ -142,11 +149,11 @@ func (l *logger) header(level LogLevel, calldepth int) (*buffer, string, int) {
 			file = file[slash+1:]
 		}
 	}
-	return l.formatHeader(time.Now(), level, file, line), file, line
+	return l.formatHeader(time.Now(), level, file, line)
 }
 
-func (l *logger) printDepth(level LogLevel, calldepth int, format string, args ...interface{}) {
-	buf, _, _ := l.header(level, calldepth+3)
+func (l *logger) printDepth(level Level, calldepth int, format string, args ...interface{}) {
+	buf := l.header(level, calldepth+3)
 	buf.headerLength = buf.Len()
 	fmt.Fprintf(buf, format, args...)
 	if buf.Bytes()[buf.Len()-1] != '\n' {
@@ -156,8 +163,8 @@ func (l *logger) printDepth(level LogLevel, calldepth int, format string, args .
 	l.writeQueue <- buf
 }
 
-func (l *logger) GetLevel() LogLevel   { return LogLevel(atomic.LoadInt32((*int32)(&l.level))) }
-func (l *logger) SetLevel(lv LogLevel) { atomic.StoreInt32((*int32)(&l.level), int32(lv)) }
+func (l *logger) GetLevel() Level   { return Level(atomic.LoadInt32((*int32)(&l.level))) }
+func (l *logger) SetLevel(lv Level) { atomic.StoreInt32((*int32)(&l.level), int32(lv)) }
 
 func (l *logger) Trace(calldepth int, format string, args ...interface{}) {
 	if l.GetLevel() >= TRACE {
@@ -184,5 +191,11 @@ func (l *logger) Warn(calldepth int, format string, args ...interface{}) {
 }
 
 func (l *logger) Error(calldepth int, format string, args ...interface{}) {
-	l.printDepth(ERROR, calldepth, format, args...)
+	if l.GetLevel() >= ERROR {
+		l.printDepth(ERROR, calldepth, format, args...)
+	}
+}
+
+func (l *logger) Fatal(calldepth int, format string, args ...interface{}) {
+	l.printDepth(FATAL, calldepth, format, args...)
 }

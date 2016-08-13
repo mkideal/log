@@ -6,11 +6,11 @@ import (
 	"sync/atomic"
 
 	"github.com/mkideal/log"
-	"github.com/mkideal/log/logger"
 )
 
 func main() {
-	defer log.Uninit(log.InitWithFile(logger.TRACE, "./log/app.log"))
+	defer log.Uninit(log.InitFile("./log/app.log"))
+	log.SetLevel(log.TRACE)
 
 	running := int32(1)
 	go func() {

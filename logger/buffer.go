@@ -6,9 +6,9 @@ import (
 
 type buffer struct {
 	bytes.Buffer
-	tmp          [64]byte
+	tmp          [32]byte
 	next         *buffer
-	level        LogLevel
+	level        Level
 	headerLength int
 	quit         bool
 }

@@ -21,7 +21,7 @@ func NewMixProvider(first logger.Provider, others ...logger.Provider) logger.Pro
 	return p
 }
 
-func (p *mixProvider) Write(level logger.LogLevel, headerLength int, data []byte) error {
+func (p *mixProvider) Write(level logger.Level, headerLength int, data []byte) error {
 	var err errorList
 	for _, op := range p.providers {
 		err.tryPush(op.Write(level, headerLength, data))
