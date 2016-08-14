@@ -52,10 +52,10 @@ func newLogger(provider Provider) *logger {
 }
 
 func (l *logger) Run() {
+	if atomic.AddInt32(&l.running, 1) > 1 {
+		return
+	}
 	go func() {
-		if atomic.AddInt32(&l.running, 1) > 1 {
-			return
-		}
 		for buf := range l.writeQueue {
 			if buf.quit {
 				break

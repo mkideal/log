@@ -98,3 +98,44 @@ func Info(format string, args ...interface{})  { glogger.Info(1, format, args...
 func Warn(format string, args ...interface{})  { glogger.Warn(1, format, args...) }
 func Error(format string, args ...interface{}) { glogger.Error(1, format, args...) }
 func Fatal(format string, args ...interface{}) { glogger.Fatal(1, format, args...) }
+
+// If returns an `ifLogger`
+func If(ok bool) ifLogger { return ifLogger(ok) }
+
+type ifLogger bool
+
+func (il ifLogger) Trace(format string, args ...interface{}) {
+	if il {
+		glogger.Trace(1, format, args...)
+	}
+}
+
+func (il ifLogger) Debug(format string, args ...interface{}) {
+	if il {
+		glogger.Debug(1, format, args...)
+	}
+}
+
+func (il ifLogger) Info(format string, args ...interface{}) {
+	if il {
+		glogger.Info(1, format, args...)
+	}
+}
+
+func (il ifLogger) Warn(format string, args ...interface{}) {
+	if il {
+		glogger.Warn(1, format, args...)
+	}
+}
+
+func (il ifLogger) Error(format string, args ...interface{}) {
+	if il {
+		glogger.Error(1, format, args...)
+	}
+}
+
+func (il ifLogger) Fatal(format string, args ...interface{}) {
+	if il {
+		glogger.Fatal(1, format, args...)
+	}
+}
