@@ -104,38 +104,47 @@ func If(ok bool) ifLogger { return ifLogger(ok) }
 
 type ifLogger bool
 
-func (il ifLogger) Trace(format string, args ...interface{}) {
+func (il ifLogger) Else() ifLogger          { return !il }
+func (il ifLogger) ElseIf(ok bool) ifLogger { return ifLogger(ok) }
+
+func (il ifLogger) Trace(format string, args ...interface{}) ifLogger {
 	if il {
 		glogger.Trace(1, format, args...)
 	}
+	return il
 }
 
-func (il ifLogger) Debug(format string, args ...interface{}) {
+func (il ifLogger) Debug(format string, args ...interface{}) ifLogger {
 	if il {
 		glogger.Debug(1, format, args...)
 	}
+	return il
 }
 
-func (il ifLogger) Info(format string, args ...interface{}) {
+func (il ifLogger) Info(format string, args ...interface{}) ifLogger {
 	if il {
 		glogger.Info(1, format, args...)
 	}
+	return il
 }
 
-func (il ifLogger) Warn(format string, args ...interface{}) {
+func (il ifLogger) Warn(format string, args ...interface{}) ifLogger {
 	if il {
 		glogger.Warn(1, format, args...)
 	}
+	return il
 }
 
-func (il ifLogger) Error(format string, args ...interface{}) {
+func (il ifLogger) Error(format string, args ...interface{}) ifLogger {
 	if il {
 		glogger.Error(1, format, args...)
 	}
+	return il
 }
 
-func (il ifLogger) Fatal(format string, args ...interface{}) {
+func (il ifLogger) Fatal(format string, args ...interface{}) ifLogger {
 	if il {
 		glogger.Fatal(1, format, args...)
 	}
+	return il
 }

@@ -23,6 +23,14 @@ func main() {
 	log.Info("%s should be printed", "INFO")
 	log.Warn("%s should be printed", "WARN")
 	log.Error("%s should be printed", "ERROR")
+
+	log.If(true).Info("%v should be printed", true)
+
+	x := 5
+	log.If(x < 5).Info("x less than 5").
+		ElseIf(x > 5).Info("x greater than 5").
+		Else().Info("x equal to 5")
+
 	log.Fatal("%s should be printed and exit program with status code 1", "FATAL")
 
 	log.Info("You cannot see me")
