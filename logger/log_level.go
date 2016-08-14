@@ -10,6 +10,7 @@ const (
 	INFO
 	DEBUG
 	TRACE
+	LevelNum
 )
 
 func (level Level) String() string {

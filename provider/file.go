@@ -3,7 +3,6 @@ package provider
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -19,8 +18,6 @@ func init() {
 }
 
 var (
-	errWriterIsNil = errors.New("writer is nil")
-
 	pid = os.Getpid()
 )
 
@@ -60,6 +57,10 @@ type File struct {
 func NewFile(opts string) logger.Provider {
 	config := NewFileOpts()
 	logger.UnmarshalOpts(opts, &config)
+	return newFile(config)
+}
+
+func newFile(config FileOpts) *File {
 	p := &File{
 		config:    config,
 		fileIndex: -1,

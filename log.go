@@ -90,6 +90,23 @@ func InitFileAndConsole(fullpath string, toStderrLevel logger.Level) error {
 	return InitWithProvider(p)
 }
 
+// InitMultiFile inits with multifile provider
+func InitMultiFile(rootdir, filename string) error {
+	return Init("multifile", makeMultiFileOpts(rootdir, filename))
+}
+
+func makeMultiFileOpts(rootdir, filename string) string {
+	return fmt.Sprintf(`{"rootdir":"%s","filename":"%s"}`, rootdir, filename)
+}
+
+// InitMultiFileAndConsole inits with console and multifile providers
+func InitMultiFileAndConsole(rootdir, filename string, toStderrLevel logger.Level) error {
+	multifileOpts := makeMultiFileOpts(rootdir, filename)
+	consoleOpts := makeConsoleOpts(toStderrLevel)
+	p := provider.NewMixProvider(provider.NewMultiFile(multifileOpts), provider.NewConsole(consoleOpts))
+	return InitWithProvider(p)
+}
+
 func GetLevel() logger.Level                   { return glogger.GetLevel() }
 func SetLevel(level logger.Level)              { glogger.SetLevel(level) }
 func Trace(format string, args ...interface{}) { glogger.Trace(1, format, args...) }

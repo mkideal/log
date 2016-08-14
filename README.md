@@ -92,7 +92,9 @@ You should call one of the following `Init` functions before writing logs:
 * **Init**(*providerType, opts string*) - init log by specified provider type and opts
 * **InitFile**(*fullpath string*) - wrap the `Init` for `file` provider
 * **InitConsole**(*toStderrLevel logger.Level*) - wrap the `Init` for `consle` provider
-* **InitFileAndConsole**(*fullpath string, toStderrLevel logger.Level*) - combine `file` and `console`
+* **InitFileAndConsole**(*fullpath string, toStderrLevel logger.Level*) - combine `file` and `console` providers
+* **InitMultiFile**(*rootdir, filename string*) - wrap the `Init` for `multifile` provider
+* **InitMultiFileAndConsole**(*rootdir, filename string*) - combine `multifile` and `console` providers
 
 And call the `Uninit` before exit program.
 
@@ -144,6 +146,22 @@ func main() {
 // InitFileAndConsole
 func main() {
 	defer log.Uninit(log.InitFileAndConsole("./log/app.log", log.LvERROR))
+	...
+}
+```
+
+```go
+// InitMultiFile
+func main() {
+	defer log.Uninit(log.InitMultiFile("./log", "app.log"))
+	...
+}
+```
+
+```go
+// InitMultiFileAndConsole
+func main() {
+	defer log.Uninit(log.InitMultiFileAndConsole("./log", "app.log", log.LvERROR))
 	...
 }
 ```
