@@ -1,5 +1,8 @@
 LOG
 ===
+[![License](http://img.shields.io/badge/license-mit-blue.svg?style=flat-square)](https://raw.githubusercontent.com/mkideal/log/master/LICENSE)
+[![Go Report Card](https://goreportcard.com/badge/github.com/mkideal/log)](https://goreportcard.com/report/github.com/mkideal/log)
+[![GoDoc](https://godoc.org/github.com/mkideal/log?status.svg)](https://godoc.org/github.com/mkideal/log)
 
 `log` package inspired from [golang/glog](https://github.com/golang/glog). We have following key features:
 
