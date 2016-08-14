@@ -7,9 +7,16 @@ import (
 func main() {
 	// Init and defer Uninit
 	defer log.Uninit(log.InitMultiFile("./log", "app.log"))
-	log.SetLevel(log.LvTRACE)
+	log.SetLevel(log.LvDEBUG)
 
-	log.Trace("%s should be printed", "TRACE")
+	log.Trace("%s cannot be printed, and trace subdirectory not created", "TRACE")
+	log.Debug("%s should be printed", "DEBUG")
+	log.Info("%s should be printed", "INFO")
+	log.Warn("%s should be printed", "WARN")
+	log.Error("%s should be printed", "ERROR")
+
+	// log again
+	log.Trace("%s cannot be printed, and trace subdirectory not created", "TRACE")
 	log.Debug("%s should be printed", "DEBUG")
 	log.Info("%s should be printed", "INFO")
 	log.Warn("%s should be printed", "WARN")
