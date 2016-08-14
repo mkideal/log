@@ -201,7 +201,7 @@ You can implement your `Provider`, then use `InitWithProvider`(see example [prov
 
 Or register your provider first, and use `Init`(see example [register_provider](https://github.com/mkideal/log/tree/master/_examples/register_provider/main.go))
 
-Here are 3 builtin providers: `console`,`file`,`mix`
+Here are 4 builtin providers: `console`,`file`,`multifile`,`mix`
 
 ### console
 
@@ -209,7 +209,7 @@ Here are 3 builtin providers: `console`,`file`,`mix`
 
 ```go
 // opts should be a JSON string or empty
-func NewFile(opts string) logger.Provider
+func NewConsole(opts string) logger.Provider
 ```
 
 *Opts:*
@@ -226,7 +226,7 @@ type ConsoleOpts struct {
 
 ```go
 // opts should be a JSON string or empty
-func NewConsole(opts string) logger.Provider
+func NewFile(opts string) logger.Provider
 ```
 
 *Opts:*
@@ -234,6 +234,31 @@ func NewConsole(opts string) logger.Provider
 ```go
 type FileOpts struct {
 	Dir       string `json:"dir"`       // log directory(default: .)
+	Filename  string `json:"filename"`  // log filename(default: <appName>.log)
+	NoSymlink bool   `json:"nosymlink"` // doesn't create symlink to latest log file(default: false)
+	MaxSize   int    `json:"maxsize"`   // max bytes number of every log file(default: 64M)
+}
+```
+
+### multifile
+
+*Creator:*
+
+```go
+// opts should be a JSON string or empty
+func NewMultiFile(opts string) logger.Provider
+```
+
+*Opts:*
+
+```go
+type MultiFileOpts struct {
+	RootDir   string `json:"rootdir"`   // log directory(default: .)
+	ErrorDir  string `json:"errordir"`  // error subdirectory(default: error)
+	WarnDir   string `json:"warndir"`   // warn subdirectory(default: warn)
+	InfoDir   string `json:"infodir"`   // info subdirectory(default: info)
+	DebugDir  string `json:"debugdir"`  // debug subdirectory(default: debug)
+	TraceDir  string `json:"tracedir"`  // trace subdirectory(default: trace)
 	Filename  string `json:"filename"`  // log filename(default: <appName>.log)
 	NoSymlink bool   `json:"nosymlink"` // doesn't create symlink to latest log file(default: false)
 	MaxSize   int    `json:"maxsize"`   // max bytes number of every log file(default: 64M)
