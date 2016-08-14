@@ -77,7 +77,7 @@ Default log level is `Info` if log level isn't specified.
 ## Init/Uninit
 
 
-You should call one of the following `Init` functions before writting logs:
+You should call one of the following `Init` functions before writing logs:
 
 * **InitWithLogger**(*logger.Logger*) - init log with a `Logger`
 * **InitWithProvider**(*logger.Provider*) - init log with a `Provider`
@@ -171,7 +171,7 @@ type Provider interface {
 }
 ```
 
-You can implements a your `Provider`, then use `InitWithProvider`(see example [provider](https://github.com/mkideal/log/tree/master/_examples/provider/main.go)).
+You can implement your `Provider`, then use `InitWithProvider`(see example [provider](https://github.com/mkideal/log/tree/master/_examples/provider/main.go)).
 
 Or register your provider first, and use `Init`(see example [register_provider](https://github.com/mkideal/log/tree/master/_examples/register_provider/main.go))
 
