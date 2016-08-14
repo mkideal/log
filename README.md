@@ -46,6 +46,13 @@ func main() {
 		ElseIf(iq > 250).Info("IQ greater than 250").
 		Else().Info("IQ equal to 250")
 
+	log.With("hello").Info("With a string field")
+	log.With(1).Info("With an int field")
+	log.With(true).Info("With a bool field")
+	log.WithN(1, "2", false).Info("With 3 fields")
+	log.With(log.M{"a":1}).Info("With a map")
+	log.WithJSON(log.M{"a":1}).Info("With a map and using JSONFormatter")
+
 	log.Fatal("%s should be printed and exit program with status code 1", "FATAL")
 
 	log.Info("You cannot see me")
@@ -313,3 +320,33 @@ log.If(iq < 250).Info("IQ less than 250").
 	ElseIf(iq > 250).Info("IQ greater than 250").
 	Else().Info("IQ equal to 250")
 ```
+
+## With structured fields
+
+```go
+func With(v interface{}) *WithLogger
+func WithN(objs ...interface{}) *WithLogger
+func WithJSON(v interface{}) *WithLogger
+```
+
+`WithLogger` has following methods:
+
+```go
+func (*WithLogger) SetFormatter(f Formatter) *WithLogger
+func (WithLogger) Trace(format string, args ...interface{})
+func (WithLogger) Debug(format string, args ...interface{})
+func (WithLogger) Info(format string, args ...interface{})
+func (WithLogger) Warn(format string, args ...interface{})
+func (WithLogger) Error(format string, args ...interface{})
+func (WithLogger) Fatal(format string, args ...interface{})
+```
+
+`Formatter` is an interface that used to format data in WithLogger
+
+```go
+type Formatter interface {
+	Format(v interface{}) []byte
+}
+```
+
+There are 2 builtin Formatter: nil(default), JSONFormatter

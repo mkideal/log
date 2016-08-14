@@ -24,6 +24,11 @@ type Logger interface {
 	Fatal(calldepth int, format string, args ...interface{})
 }
 
+type WithLogger interface {
+	Logger
+	LogWith(level Level, calldepth int, b []byte, format string, args ...interface{})
+}
+
 // logger implements Logger interface
 type logger struct {
 	level    Level
@@ -157,9 +162,13 @@ func (l *logger) header(level Level, calldepth int) *buffer {
 	return l.formatHeader(time.Now(), level, file, line)
 }
 
-func (l *logger) output(level Level, calldepth int, format string, args ...interface{}) {
+func (l *logger) output(level Level, calldepth int, b []byte, format string, args ...interface{}) {
 	buf := l.header(level, calldepth+3)
 	buf.headerLength = buf.Len()
+	if len(b) > 0 {
+		buf.Write(b)
+		buf.WriteString(" | ")
+	}
 	fmt.Fprintf(buf, format, args...)
 	if buf.Bytes()[buf.Len()-1] != '\n' {
 		buf.WriteByte('\n')
@@ -173,34 +182,41 @@ func (l *logger) SetLevel(lv Level) { atomic.StoreInt32((*int32)(&l.level), int3
 
 func (l *logger) Trace(calldepth int, format string, args ...interface{}) {
 	if l.GetLevel() >= TRACE {
-		l.output(TRACE, calldepth, format, args...)
+		l.output(TRACE, calldepth, nil, format, args...)
 	}
 }
 
 func (l *logger) Debug(calldepth int, format string, args ...interface{}) {
 	if l.GetLevel() >= DEBUG {
-		l.output(DEBUG, calldepth, format, args...)
+		l.output(DEBUG, calldepth, nil, format, args...)
 	}
 }
 
 func (l *logger) Info(calldepth int, format string, args ...interface{}) {
 	if l.GetLevel() >= INFO {
-		l.output(INFO, calldepth, format, args...)
+		l.output(INFO, calldepth, nil, format, args...)
 	}
 }
 
 func (l *logger) Warn(calldepth int, format string, args ...interface{}) {
 	if l.GetLevel() >= WARN {
-		l.output(WARN, calldepth, format, args...)
+		l.output(WARN, calldepth, nil, format, args...)
 	}
 }
 
 func (l *logger) Error(calldepth int, format string, args ...interface{}) {
 	if l.GetLevel() >= ERROR {
-		l.output(ERROR, calldepth, format, args...)
+		l.output(ERROR, calldepth, nil, format, args...)
 	}
 }
 
 func (l *logger) Fatal(calldepth int, format string, args ...interface{}) {
-	l.output(FATAL, calldepth, format, args...)
+	l.output(FATAL, calldepth, nil, format, args...)
+}
+
+// LogWith implements WithLogger
+func (l *logger) LogWith(level Level, calldepth int, b []byte, format string, args ...interface{}) {
+	if l.GetLevel() >= level {
+		l.output(level, calldepth, b, format, args...)
+	}
 }
