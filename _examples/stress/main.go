@@ -16,10 +16,10 @@ var (
 
 func main() {
 	defer log.Uninit(log.InitFile("./log/app.log"))
-	log.SetLevel(log.TRACE)
+	log.SetLevel(log.LvTRACE)
 
 	flag.Parse()
-	d := time.Duration(*flInterval) * time.Second
+	d := time.Duration(*flInterval) * time.Millisecond
 
 	running := int32(1)
 	go func() {
@@ -36,7 +36,7 @@ func main() {
 	}()
 
 	quit := make(chan struct{})
-	ListenSignal(func(sig os.Signal) bool {
+	listenSignal(func(sig os.Signal) bool {
 		atomic.StoreInt32(&running, 0)
 		quit <- struct{}{}
 		return true
@@ -45,7 +45,7 @@ func main() {
 	log.Info("app exit")
 }
 
-func ListenSignal(handler func(sig os.Signal) (ret bool), signals ...os.Signal) {
+func listenSignal(handler func(sig os.Signal) (ret bool), signals ...os.Signal) {
 	sigChan := make(chan os.Signal)
 	signal.Notify(sigChan, signals...)
 	go func() {

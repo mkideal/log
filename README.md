@@ -24,7 +24,8 @@ You should call one of the following `Init` functions before writting logs:
 * **InitWithProvider**(*logger.Provider*) - init log with a `Provider`
 * **Init**(*providerType, opts string*) - init log by specified provider type and opts
 * **InitFile**(*fullpath string*) - wrap the `Init` for `file` provider
-* **InitConsole**() - wrap the `Init` for `consle` provider
+* **InitConsole**(*toStderrLevel logger.Level*) - wrap the `Init` for `consle` provider
+* **InitFileAndConsole**(*fullpath string, toStderrLevel logger.Level*) - combine `file` and `console`
 
 And call the `Uninit` before exit program.
 
@@ -67,7 +68,15 @@ func main() {
 ```go
 // InitConsole
 func main() {
-	defer log.Uninit(log.InitConsole())
+	defer log.Uninit(log.InitConsole(log.LvWARN))
+	...
+}
+```
+
+```go
+// InitFileAndConsole
+func main() {
+	defer log.Uninit(log.InitFileAndConsole("./log/app.log", log.LvERROR))
 	...
 }
 ```
@@ -89,5 +98,88 @@ log.Debug("hello %s", "DEBUG")
 log.Info("hello %s", "INFO")
 log.Warn("hello %s", "WARN")
 log.Error("hello %s", "ERROR")
-log.Fatak("bye bye %s", "FATAL")
+log.Fatal("bye bye %s", "FATAL")
 ```
+
+## Provider
+
+`Provider` interface defined in `log/logger/provider.go`:
+
+```
+type Provider interface {
+	Write(level Level, headerLength int, data []byte) error
+	Close() error
+}
+```
+
+You can implements a your `Provider`, then use `InitWithProvider`(see example [provider](https://github.com/mkideal/log/tree/master/_examples/provider/main.go)).
+
+Or register your provider first, and use `Init`(see example [register_provider](https://github.com/mkideal/log/tree/master/_examples/register_provider/main.go))
+
+Here are 3 builtin providers: `console`,`file`,`mix`
+
+### console
+
+*Creator:*
+
+```go
+// opts should be a JSON string or empty
+func NewFile(opts string) logger.Provider
+```
+
+*Opts:*
+
+```go
+type ConsoleOpts struct {
+	ToStderrLevel logger.Level `json:"tostderrlevel"`
+}
+```
+
+### file
+
+*Creator:*
+
+```go
+// opts should be a JSON string or empty
+func NewConsole(opts string) logger.Provider
+```
+
+*Opts:*
+
+```go
+type FileOpts struct {
+	Dir       string `json:"dir"`
+	Filename  string `json:"filename"`
+	NoSymlink bool   `json:"nosymlink"`
+	MaxSize   int    `json:"maxsize"`
+}
+```
+
+### mix
+
+*Creator:*
+
+```go
+func NewMixProvider(first logger.Provider, others ...logger.Provider) logger.Provider
+```
+
+## Logger
+
+`Logger` interface defined in log/logger/logger.go:
+
+```go
+type Logger interface {
+	Run()
+	Quit()
+	GetLevel() Level
+	SetLevel(level Level)
+	Trace(calldepth int, format string, args ...interface{})
+	Debug(calldepth int, format string, args ...interface{})
+	Info(calldepth int, format string, args ...interface{})
+	Warn(calldepth int, format string, args ...interface{})
+	Error(calldepth int, format string, args ...interface{})
+	Fatal(calldepth int, format string, args ...interface{})
+}
+```
+
+You can use your `Logger` by calling `InitWithLogger`.

@@ -23,11 +23,6 @@ type Logger interface {
 	Fatal(calldepth int, format string, args ...interface{})
 }
 
-type Provider interface {
-	Write(level Level, headerLength int, data []byte) error
-	Close()
-}
-
 // logger implements Logger interface
 type logger struct {
 	level    Level
@@ -40,7 +35,7 @@ type logger struct {
 	quitNotify chan struct{}
 }
 
-func NewLogger(provider Provider) Logger {
+func New(provider Provider) Logger {
 	return newLogger(provider)
 }
 
@@ -152,7 +147,7 @@ func (l *logger) header(level Level, calldepth int) *buffer {
 	return l.formatHeader(time.Now(), level, file, line)
 }
 
-func (l *logger) printDepth(level Level, calldepth int, format string, args ...interface{}) {
+func (l *logger) output(level Level, calldepth int, format string, args ...interface{}) {
 	buf := l.header(level, calldepth+3)
 	buf.headerLength = buf.Len()
 	fmt.Fprintf(buf, format, args...)
@@ -168,34 +163,34 @@ func (l *logger) SetLevel(lv Level) { atomic.StoreInt32((*int32)(&l.level), int3
 
 func (l *logger) Trace(calldepth int, format string, args ...interface{}) {
 	if l.GetLevel() >= TRACE {
-		l.printDepth(TRACE, calldepth, format, args...)
+		l.output(TRACE, calldepth, format, args...)
 	}
 }
 
 func (l *logger) Debug(calldepth int, format string, args ...interface{}) {
 	if l.GetLevel() >= DEBUG {
-		l.printDepth(DEBUG, calldepth, format, args...)
+		l.output(DEBUG, calldepth, format, args...)
 	}
 }
 
 func (l *logger) Info(calldepth int, format string, args ...interface{}) {
 	if l.GetLevel() >= INFO {
-		l.printDepth(INFO, calldepth, format, args...)
+		l.output(INFO, calldepth, format, args...)
 	}
 }
 
 func (l *logger) Warn(calldepth int, format string, args ...interface{}) {
 	if l.GetLevel() >= WARN {
-		l.printDepth(WARN, calldepth, format, args...)
+		l.output(WARN, calldepth, format, args...)
 	}
 }
 
 func (l *logger) Error(calldepth int, format string, args ...interface{}) {
 	if l.GetLevel() >= ERROR {
-		l.printDepth(ERROR, calldepth, format, args...)
+		l.output(ERROR, calldepth, format, args...)
 	}
 }
 
 func (l *logger) Fatal(calldepth int, format string, args ...interface{}) {
-	l.printDepth(FATAL, calldepth, format, args...)
+	l.output(FATAL, calldepth, format, args...)
 }

@@ -3,7 +3,6 @@ package provider
 import (
 	"bufio"
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -15,21 +14,26 @@ import (
 	"github.com/mkideal/log/logger"
 )
 
+func init() {
+	logger.Register("file", NewFile)
+}
+
 var (
 	ErrWriterIsNil = errors.New("writer is nil")
 
 	pid = os.Getpid()
 )
 
-type FileConfig struct {
-	Dir      string `json:"dir"`
-	Filename string `json:"filename"`
-	MaxSize  int    `json:"maxsize"`
+type FileOpts struct {
+	Dir       string `json:"dir"`
+	Filename  string `json:"filename"`
+	NoSymlink bool   `json:"nosymlink"`
+	MaxSize   int    `json:"maxsize"`
 }
 
-func NewFileConfig() FileConfig {
+func NewFileOpts() FileOpts {
 	_, appName := filepath.Split(os.Args[0])
-	return FileConfig{
+	return FileOpts{
 		Dir:      ".",
 		Filename: appName + ".log",
 		MaxSize:  1 << 26, // 64M
@@ -37,7 +41,7 @@ func NewFileConfig() FileConfig {
 }
 
 type File struct {
-	config           FileConfig
+	config           FileOpts
 	currentSize      int
 	createdTime      time.Time
 	fileIndex        int
@@ -50,8 +54,8 @@ type File struct {
 }
 
 func NewFile(opts string) logger.Provider {
-	config := NewFileConfig()
-	json.Unmarshal([]byte(opts), &config)
+	config := NewFileOpts()
+	logger.UnmarshalOpts(opts, &config)
 	p := &File{
 		config:    config,
 		fileIndex: -1,
@@ -93,20 +97,22 @@ func (p *File) Write(level logger.Level, headerLength int, data []byte) error {
 	return err
 }
 
-func (p *File) closeCurrent() {
+func (p *File) closeCurrent() error {
+	var err errorList
 	if p.writer != nil {
-		p.writer.Flush()
-		p.file.Sync()
-		p.file.Close()
+		err.tryPush(p.writer.Flush())
+		err.tryPush(p.file.Sync())
+		err.tryPush(p.file.Close())
 		p.written = false
 	}
 	p.currentSize = 0
+	return err.Err()
 }
 
-func (p *File) Close() {
+func (p *File) Close() error {
 	p.mu.Lock()
-	p.closeCurrent()
-	p.mu.Unlock()
+	defer p.mu.Unlock()
+	return p.closeCurrent()
 }
 
 func (p *File) rotate(now time.Time) error {
@@ -142,7 +148,7 @@ func (p *File) create() (*os.File, error) {
 	name := fmt.Sprintf("%s.%04d%02d%02d-%02d%02d.%06d.%03d", p.config.Filename, y, m, d, H, M, pid, p.fileIndex)
 	fullname := filepath.Join(p.config.Dir, name)
 	f, err := os.Create(fullname)
-	if err == nil {
+	if err == nil && !p.config.NoSymlink {
 		symlink := filepath.Join(p.config.Dir, p.config.Filename)
 		os.Remove(symlink)
 		os.Symlink(name, symlink)
