@@ -41,6 +41,28 @@ func main() {
 }
 ```
 
+Run it:
+
+```sh
+go run main.go
+```
+
+Now, current directory should be have a subdirectory `log`
+
+	.
+	├── log
+	│   ├── app.log -> app.log.20160814-1449.028439.000
+	│   └── app.log.20160814-1449.028439.000
+	└── main.go
+
+The log file is `./log/app.log.20160814-1449.028439.000`, and `./log/app.log` link to it.
+
+* `20160814-1449` represents datetime `2016/08/14 14:49:00`
+* `028439` is the pid
+* `000` is a sequence number
+
+NOTE: You can remove the line `defer log.Uninit(log.InitFile("./log/app.log"))`. In this case, the log package use standard log package
+
 ## Log level
 
 There are 6 log levels: `Fatal`,`Error`,`Warn`,`Info`,`Debug`,`Trace`
