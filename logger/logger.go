@@ -32,6 +32,7 @@ type logger struct {
 	bufferListLocker sync.Mutex
 	bufferList       *buffer
 
+	running    int32
 	writeQueue chan *buffer
 	quitNotify chan struct{}
 }
@@ -52,6 +53,9 @@ func newLogger(provider Provider) *logger {
 
 func (l *logger) Run() {
 	go func() {
+		if atomic.AddInt32(&l.running, 1) > 1 {
+			return
+		}
 		for buf := range l.writeQueue {
 			if buf.quit {
 				break
@@ -63,11 +67,15 @@ func (l *logger) Run() {
 			}
 			l.putBuffer(buf)
 		}
+		atomic.StoreInt32(&l.running, 0)
 		l.quitNotify <- struct{}{}
 	}()
 }
 
 func (l *logger) Quit() {
+	if atomic.LoadInt32(&l.running) == 0 {
+		return
+	}
 	l.writeQueue <- &buffer{quit: true}
 	<-l.quitNotify
 	l.provider.Close()

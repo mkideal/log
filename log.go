@@ -34,6 +34,7 @@ func Uninit(err error) {
 
 // InitWithLogger inits global logger with a specified logger
 func InitWithLogger(l logger.Logger) error {
+	glogger.Quit()
 	glogger = l
 	glogger.Run()
 	return nil
@@ -41,6 +42,7 @@ func InitWithLogger(l logger.Logger) error {
 
 // InitWithProvider inits global logger with a specified provider
 func InitWithProvider(p logger.Provider) error {
+	glogger.Quit()
 	glogger = logger.New(p)
 	glogger.SetLevel(LvINFO)
 	glogger.Run()
