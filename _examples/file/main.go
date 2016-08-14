@@ -26,10 +26,10 @@ func main() {
 
 	log.If(true).Info("%v should be printed", true)
 
-	x := 5
-	log.If(x < 5).Info("x less than 5").
-		ElseIf(x > 5).Info("x greater than 5").
-		Else().Info("x equal to 5")
+	iq := 250
+	log.If(iq < 250).Info("IQ less than 250").
+		ElseIf(iq > 250).Info("IQ greater than 250").
+		Else().Info("IQ equal to 250")
 
 	log.Fatal("%s should be printed and exit program with status code 1", "FATAL")
 
