@@ -22,6 +22,7 @@ func main() {
 	d := time.Duration(*flInterval) * time.Millisecond
 
 	running := int32(1)
+	over := make(chan bool)
 	go func() {
 		for atomic.LoadInt32(&running) != 0 {
 			log.Trace("hello %s", "Trace")
@@ -33,15 +34,14 @@ func main() {
 				time.Sleep(d)
 			}
 		}
+		over <- true
 	}()
 
-	quit := make(chan struct{})
 	listenSignal(func(sig os.Signal) bool {
 		atomic.StoreInt32(&running, 0)
-		quit <- struct{}{}
 		return true
 	})
-	<-quit
+	<-over
 	log.Info("app exit")
 }
 
