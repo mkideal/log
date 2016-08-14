@@ -44,15 +44,6 @@ func InitWithProvider(p logger.Provider) error {
 // Init inits global logger with providerType and opts
 // * providerType: providerType should be one of {file, console}
 // * opts        : opts is a json string or empty
-//
-// NOTE: opts for file:
-// dir     : log directory
-// filename: log filename
-// maxsize : max bytes number of one log file(default=1<<26, i.e. 64M)
-//
-// EXAMPLE:
-// `{"dir":"log","filename":"app.log"}`
-// `{"dir":"log","filename":"app.log","maxsize":819200}`
 func Init(providerType, opts string) error {
 	pcreator := logger.Lookup(providerType)
 	if pcreator == nil {

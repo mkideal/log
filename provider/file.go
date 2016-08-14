@@ -25,10 +25,10 @@ var (
 )
 
 type FileOpts struct {
-	Dir       string `json:"dir"`
-	Filename  string `json:"filename"`
-	NoSymlink bool   `json:"nosymlink"`
-	MaxSize   int    `json:"maxsize"`
+	Dir       string `json:"dir"`       // log directory(default: .)
+	Filename  string `json:"filename"`  // log filename(default: <appName>.log)
+	NoSymlink bool   `json:"nosymlink"` // doesn't create symlink to latest log file(default: false)
+	MaxSize   int    `json:"maxsize"`   // max bytes number of every log file(default: 64M)
 }
 
 func NewFileOpts() FileOpts {

@@ -12,7 +12,7 @@ func init() {
 }
 
 type ConsoleOpts struct {
-	ToStderrLevel logger.Level `json:"tostderrlevel"`
+	ToStderrLevel logger.Level `json:"tostderrlevel"` // level which write to stderr from
 }
 
 func NewConsoleOpts() ConsoleOpts {
