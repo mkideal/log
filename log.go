@@ -99,50 +99,50 @@ func Warn(format string, args ...interface{})  { glogger.Warn(1, format, args...
 func Error(format string, args ...interface{}) { glogger.Error(1, format, args...) }
 func Fatal(format string, args ...interface{}) { glogger.Fatal(1, format, args...) }
 
-// If returns an `ifLogger`
-func If(ok bool) ifLogger { return ifLogger(ok) }
+// If returns an `IfLogger`
+func If(ok bool) IfLogger { return IfLogger(ok) }
 
-type ifLogger bool
+type IfLogger bool
 
-func (il ifLogger) Else() ifLogger          { return !il }
-func (il ifLogger) ElseIf(ok bool) ifLogger { return ifLogger(ok) }
+func (il IfLogger) Else() IfLogger          { return !il }
+func (il IfLogger) ElseIf(ok bool) IfLogger { return IfLogger(ok) }
 
-func (il ifLogger) Trace(format string, args ...interface{}) ifLogger {
+func (il IfLogger) Trace(format string, args ...interface{}) IfLogger {
 	if il {
 		glogger.Trace(1, format, args...)
 	}
 	return il
 }
 
-func (il ifLogger) Debug(format string, args ...interface{}) ifLogger {
+func (il IfLogger) Debug(format string, args ...interface{}) IfLogger {
 	if il {
 		glogger.Debug(1, format, args...)
 	}
 	return il
 }
 
-func (il ifLogger) Info(format string, args ...interface{}) ifLogger {
+func (il IfLogger) Info(format string, args ...interface{}) IfLogger {
 	if il {
 		glogger.Info(1, format, args...)
 	}
 	return il
 }
 
-func (il ifLogger) Warn(format string, args ...interface{}) ifLogger {
+func (il IfLogger) Warn(format string, args ...interface{}) IfLogger {
 	if il {
 		glogger.Warn(1, format, args...)
 	}
 	return il
 }
 
-func (il ifLogger) Error(format string, args ...interface{}) ifLogger {
+func (il IfLogger) Error(format string, args ...interface{}) IfLogger {
 	if il {
 		glogger.Error(1, format, args...)
 	}
 	return il
 }
 
-func (il ifLogger) Fatal(format string, args ...interface{}) ifLogger {
+func (il IfLogger) Fatal(format string, args ...interface{}) IfLogger {
 	if il {
 		glogger.Fatal(1, format, args...)
 	}

@@ -251,4 +251,22 @@ type Logger interface {
 
 You can use your `Logger` by calling `InitWithLogger`.
 
-## If
+## If(ElseIf,Else)
+
+`log.If(bool)` returns a bool value which type is `IfLogger`. `IfLogger` implements `Trace`,`Debug`,`Info`,`Warn`,`Error`,`Fatal` methods, and all methods return the IfLogger.
+
+`IfLogger` has methods `ElseIf` and `Else`.
+
+```go
+func (il IfLogger) Else() IfLogger          { return !il }
+func (il IfLogger) ElseIf(ok bool) IfLogger { return IfLogger(ok) }
+```
+
+Here is an example demonstrates how to use `IfLogger`:
+
+```go
+x := 5
+log.If(x < 5).Info("x less than 5").
+	ElseIf(x > 5).Info("x greater than 5").
+	Else().Info("x equal to 5")
+```
