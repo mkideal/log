@@ -181,6 +181,7 @@ func WithJSON(v interface{}) *WithLogger { return &WithLogger{data: v, formatter
 type WithLogger struct {
 	data      interface{}
 	formatter Formatter
+	b         []byte
 }
 
 var bytesTrue = []byte("true")
@@ -228,19 +229,25 @@ func toBytes(v interface{}) []byte {
 	}
 }
 
-func (wl WithLogger) Bytes() []byte {
-	if wl.formatter != nil {
-		return wl.formatter.Format(wl.data)
+func (wl *WithLogger) Bytes() []byte {
+	if wl.b != nil {
+		return wl.b
 	}
-	return toBytes(wl.data)
+	if wl.formatter != nil {
+		wl.b = wl.formatter.Format(wl.data)
+		return wl.b
+	}
+	wl.b = toBytes(wl.data)
+	return wl.b
 }
 
 func (wl *WithLogger) SetFormatter(f Formatter) *WithLogger {
 	wl.formatter = f
+	wl.b = nil
 	return wl
 }
 
-func (wl WithLogger) Trace(format string, args ...interface{}) {
+func (wl *WithLogger) Trace(format string, args ...interface{}) {
 	if glogger.GetLevel() >= LvTRACE {
 		if l, ok := glogger.(logger.WithLogger); ok {
 			l.LogWith(LvTRACE, 1, wl.Bytes(), format, args...)
@@ -252,7 +259,7 @@ func (wl WithLogger) Trace(format string, args ...interface{}) {
 	}
 }
 
-func (wl WithLogger) Debug(format string, args ...interface{}) {
+func (wl *WithLogger) Debug(format string, args ...interface{}) {
 	if glogger.GetLevel() >= LvDEBUG {
 		if l, ok := glogger.(logger.WithLogger); ok {
 			l.LogWith(LvDEBUG, 1, wl.Bytes(), format, args...)
@@ -264,7 +271,7 @@ func (wl WithLogger) Debug(format string, args ...interface{}) {
 	}
 }
 
-func (wl WithLogger) Info(format string, args ...interface{}) {
+func (wl *WithLogger) Info(format string, args ...interface{}) {
 	if glogger.GetLevel() >= LvINFO {
 		if l, ok := glogger.(logger.WithLogger); ok {
 			l.LogWith(LvINFO, 1, wl.Bytes(), format, args...)
@@ -276,7 +283,7 @@ func (wl WithLogger) Info(format string, args ...interface{}) {
 	}
 }
 
-func (wl WithLogger) Warn(format string, args ...interface{}) {
+func (wl *WithLogger) Warn(format string, args ...interface{}) {
 	if glogger.GetLevel() >= LvWARN {
 		if l, ok := glogger.(logger.WithLogger); ok {
 			l.LogWith(LvWARN, 1, wl.Bytes(), format, args...)
@@ -288,7 +295,7 @@ func (wl WithLogger) Warn(format string, args ...interface{}) {
 	}
 }
 
-func (wl WithLogger) Error(format string, args ...interface{}) {
+func (wl *WithLogger) Error(format string, args ...interface{}) {
 	if glogger.GetLevel() >= LvERROR {
 		if l, ok := glogger.(logger.WithLogger); ok {
 			l.LogWith(LvERROR, 1, wl.Bytes(), format, args...)
@@ -300,7 +307,7 @@ func (wl WithLogger) Error(format string, args ...interface{}) {
 	}
 }
 
-func (wl WithLogger) Fatal(format string, args ...interface{}) {
+func (wl *WithLogger) Fatal(format string, args ...interface{}) {
 	if glogger.GetLevel() >= LvFATAL {
 		if l, ok := glogger.(logger.WithLogger); ok {
 			l.LogWith(LvFATAL, 1, wl.Bytes(), format, args...)
