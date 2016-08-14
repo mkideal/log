@@ -19,11 +19,12 @@ func init() {
 }
 
 var (
-	ErrWriterIsNil = errors.New("writer is nil")
+	errWriterIsNil = errors.New("writer is nil")
 
 	pid = os.Getpid()
 )
 
+// FileOpts represents options object of file provider
 type FileOpts struct {
 	Dir       string `json:"dir"`       // log directory(default: .)
 	Filename  string `json:"filename"`  // log filename(default: <appName>.log)
@@ -31,6 +32,7 @@ type FileOpts struct {
 	MaxSize   int    `json:"maxsize"`   // max bytes number of every log file(default: 64M)
 }
 
+// NewFileOpts ...
 func NewFileOpts() FileOpts {
 	_, appName := filepath.Split(os.Args[0])
 	return FileOpts{
@@ -40,6 +42,7 @@ func NewFileOpts() FileOpts {
 	}
 }
 
+// File is provider that writes logs to file
 type File struct {
 	config           FileOpts
 	currentSize      int
@@ -53,6 +56,7 @@ type File struct {
 	written bool
 }
 
+// NewFile creates file provider
 func NewFile(opts string) logger.Provider {
 	config := NewFileOpts()
 	logger.UnmarshalOpts(opts, &config)
@@ -75,12 +79,13 @@ func NewFile(opts string) logger.Provider {
 	return p
 }
 
+// Write writes log to file
 func (p *File) Write(level logger.Level, headerLength int, data []byte) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
 	if p.writer == nil {
-		return ErrWriterIsNil
+		return errWriterIsNil
 	}
 	now := time.Now()
 	if !isSameDay(now, p.createdTime) {
@@ -106,9 +111,10 @@ func (p *File) closeCurrent() error {
 		p.written = false
 	}
 	p.currentSize = 0
-	return err.Err()
+	return err.err()
 }
 
+// Close closes current log file
 func (p *File) Close() error {
 	p.mu.Lock()
 	defer p.mu.Unlock()

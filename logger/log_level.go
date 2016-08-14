@@ -1,5 +1,6 @@
 package logger
 
+// Level represents log level
 type Level int32
 
 const (
@@ -29,6 +30,7 @@ func (level Level) String() string {
 	return "INVALID"
 }
 
+// ParseLevel parses log level from string
 func ParseLevel(s string) (lv Level, ok bool) {
 	switch s {
 	case "fatal", "FATAL", "F", "f", "0":
@@ -47,6 +49,7 @@ func ParseLevel(s string) (lv Level, ok bool) {
 	return INFO, false
 }
 
+// MustParseLevel similars to ParseLevel, but panic if parse fail
 func MustParseLevel(s string) Level {
 	lv, ok := ParseLevel(s)
 	if !ok {

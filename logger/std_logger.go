@@ -9,6 +9,7 @@ import (
 
 type stdLogger Level
 
+// NewStdLogger creates std logger
 func NewStdLogger() Logger {
 	l := new(stdLogger)
 	*l = stdLogger(INFO)

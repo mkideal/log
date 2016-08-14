@@ -18,22 +18,28 @@ const (
 	LvTRACE = logger.TRACE
 )
 
+// ParseLevel parses log level from string
 func ParseLevel(s string) (logger.Level, bool) { return logger.ParseLevel(s) }
-func MustParseLevel(s string) logger.Level     { return logger.MustParseLevel(s) }
+
+// MustParseLevel similars to ParseLevel, but panic if parse fail
+func MustParseLevel(s string) logger.Level { return logger.MustParseLevel(s) }
 
 // global logger
 var glogger = logger.NewStdLogger()
 
+// Uninit uninits log package
 func Uninit(err error) {
 	glogger.Quit()
 }
 
+// InitWithLogger inits global logger with a specified logger
 func InitWithLogger(l logger.Logger) error {
 	glogger = l
 	glogger.Run()
 	return nil
 }
 
+// InitWithProvider inits global logger with a specified provider
 func InitWithProvider(p logger.Provider) error {
 	glogger = logger.New(p)
 	glogger.SetLevel(LvINFO)

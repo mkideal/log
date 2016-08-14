@@ -10,6 +10,7 @@ import (
 	"time"
 )
 
+// Logger is the top-level object of log package
 type Logger interface {
 	Run()
 	Quit()
@@ -35,6 +36,7 @@ type logger struct {
 	quitNotify chan struct{}
 }
 
+// New creates logger with provider
 func New(provider Provider) Logger {
 	return newLogger(provider)
 }

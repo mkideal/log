@@ -47,7 +47,7 @@ Run it:
 go run main.go
 ```
 
-Now, current directory should be have a subdirectory `log`
+Now, current directory should have a subdirectory `log`
 
 	.
 	├── log
