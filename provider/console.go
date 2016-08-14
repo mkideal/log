@@ -54,5 +54,5 @@ func (p *Console) Write(level logger.Level, headerLength int, data []byte) error
 	return err
 }
 
-// Write implements Provider.Close method
+// Close implements Provider.Close method
 func (p *Console) Close() error { return nil }
