@@ -14,6 +14,7 @@ import (
 type Logger interface {
 	Run()
 	Quit()
+	NoHeader()
 	GetLevel() Level
 	SetLevel(level Level)
 	Trace(calldepth int, format string, args ...interface{})
@@ -33,6 +34,7 @@ type WithLogger interface {
 type logger struct {
 	level    Level
 	provider Provider
+	noHeader int32
 
 	bufferListLocker sync.Mutex
 	bufferList       *buffer
@@ -149,6 +151,9 @@ func (l *logger) formatHeader(now time.Time, level Level, file string, line int)
 }
 
 func (l *logger) header(level Level, calldepth int) *buffer {
+	if atomic.LoadInt32(&l.noHeader) != 0 {
+		return l.getBuffer()
+	}
 	_, file, line, ok := runtime.Caller(calldepth)
 	if !ok {
 		file = "???"
@@ -167,7 +172,9 @@ func (l *logger) output(level Level, calldepth int, b []byte, format string, arg
 	buf.headerLength = buf.Len()
 	if len(b) > 0 {
 		buf.Write(b)
-		buf.WriteString(" | ")
+		if len(format) > 0 {
+			buf.WriteString(" | ")
+		}
 	}
 	fmt.Fprintf(buf, format, args...)
 	if buf.Bytes()[buf.Len()-1] != '\n' {
@@ -177,6 +184,7 @@ func (l *logger) output(level Level, calldepth int, b []byte, format string, arg
 	l.writeQueue <- buf
 }
 
+func (l *logger) NoHeader()         { atomic.StoreInt32(&l.noHeader, 1) }
 func (l *logger) GetLevel() Level   { return Level(atomic.LoadInt32((*int32)(&l.level))) }
 func (l *logger) SetLevel(lv Level) { atomic.StoreInt32((*int32)(&l.level), int32(lv)) }
 

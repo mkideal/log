@@ -53,6 +53,11 @@ func main() {
 	log.With(log.M{"a":1}).Info("With a map")
 	log.WithJSON(log.M{"a":1}).Info("With a map and using JSONFormatter")
 
+	// don't print message header
+	log.NoHeader()
+
+	log.Info("This message have no header")
+
 	log.Fatal("%s should be printed and exit program with status code 1", "FATAL")
 
 	log.Info("You cannot see me")

@@ -110,6 +110,7 @@ func InitMultiFileAndConsole(rootdir, filename string, toStderrLevel logger.Leve
 	return InitWithProvider(p)
 }
 
+func NoHeader()                                { glogger.NoHeader() }
 func GetLevel() logger.Level                   { return glogger.GetLevel() }
 func SetLevel(level logger.Level)              { glogger.SetLevel(level) }
 func Trace(format string, args ...interface{}) { glogger.Trace(1, format, args...) }

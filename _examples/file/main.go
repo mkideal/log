@@ -31,6 +31,19 @@ func main() {
 		ElseIf(iq > 250).Info("IQ greater than 250").
 		Else().Info("IQ equal to 250")
 
+	log.With("hello").Info("With a string field")
+	log.With("hello").Info("")
+	log.With(1).Info("With an int field")
+	log.With(true).Info("With a bool field")
+	log.WithN(1, "2", false).Info("With 3 fields")
+	log.With(log.M{"a": 1}).Info("With a map")
+	log.WithJSON(log.M{"a": 1}).Info("With a map and using JSONFormatter")
+
+	// don't print message header
+	log.NoHeader()
+
+	log.Info("This message have no header")
+
 	log.Fatal("%s should be printed and exit program with status code 1", "FATAL")
 
 	log.Info("You cannot see me")

@@ -18,6 +18,7 @@ func NewStdLogger() Logger {
 
 func (l *stdLogger) Run()                 {}
 func (l *stdLogger) Quit()                {}
+func (l *stdLogger) NoHeader()            { stdlog.SetPrefix("") }
 func (l *stdLogger) GetLevel() Level      { return Level(atomic.LoadInt32((*int32)(l))) }
 func (l *stdLogger) SetLevel(level Level) { atomic.StoreInt32((*int32)(l), int32(level)) }
 

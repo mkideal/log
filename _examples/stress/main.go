@@ -4,6 +4,7 @@ import (
 	"flag"
 	"os"
 	"os/signal"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -22,8 +23,10 @@ func main() {
 	d := time.Duration(*flInterval) * time.Millisecond
 
 	running := int32(1)
-	over := make(chan bool)
-	go func() {
+
+	var g sync.WaitGroup
+
+	task := func() {
 		for atomic.LoadInt32(&running) != 0 {
 			log.Trace("hello %s", "Trace")
 			log.Debug("hello %s", "Debug")
@@ -34,14 +37,21 @@ func main() {
 				time.Sleep(d)
 			}
 		}
-		over <- true
-	}()
+		g.Done()
+	}
+
+	n := 10
+	g.Add(n)
+	for i := 0; i < n; i++ {
+		go task()
+	}
 
 	listenSignal(func(sig os.Signal) bool {
 		atomic.StoreInt32(&running, 0)
 		return true
 	})
-	<-over
+
+	g.Wait()
 	log.Info("app exit")
 }
 
