@@ -2,6 +2,7 @@ package logger
 
 import (
 	"errors"
+	"strings"
 )
 
 // Level represents log level
@@ -48,18 +49,19 @@ func (level *Level) Decode(s string) error {
 
 // ParseLevel parses log level from string
 func ParseLevel(s string) (lv Level, ok bool) {
+	s = strings.ToUpper(s)
 	switch s {
-	case "fatal", "FATAL", "F", "f", "0":
+	case "FATAL", "F", "0":
 		return FATAL, true
-	case "error", "ERROR", "E", "e", "1":
+	case "ERROR", "E", "1":
 		return ERROR, true
-	case "warn", "WARN", "W", "w", "2":
+	case "WARN", "W", "2":
 		return WARN, true
-	case "info", "INFO", "I", "i", "3":
+	case "INFO", "I", "3":
 		return INFO, true
-	case "debug", "DEBUG", "D", "d", "4":
+	case "DEBUG", "D", "4":
 		return DEBUG, true
-	case "trace", "TRACE", "T", "t", "5":
+	case "TRACE", "T", "5":
 		return TRACE, true
 	}
 	return INFO, false
