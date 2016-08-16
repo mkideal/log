@@ -2,6 +2,7 @@ package logger
 
 import (
 	"encoding/json"
+	"sync"
 )
 
 // Provider define an interface for writing logs
@@ -14,11 +15,14 @@ type Provider interface {
 type ProviderCreator func(opts string) Provider
 
 var (
-	providers = map[string]ProviderCreator{}
+	providersMu sync.Mutex
+	providers   = map[string]ProviderCreator{}
 )
 
 // Register registers a provider by name and creator
 func Register(providerType string, creator ProviderCreator) {
+	providersMu.Lock()
+	defer providersMu.Unlock()
 	if _, ok := providers[providerType]; ok {
 		panic("provider " + providerType + " registered")
 	}
@@ -27,6 +31,8 @@ func Register(providerType string, creator ProviderCreator) {
 
 // Lookup gets provider creator by name
 func Lookup(providerType string) ProviderCreator {
+	providersMu.Lock()
+	defer providersMu.Unlock()
 	return providers[providerType]
 }
 
