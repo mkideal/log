@@ -26,4 +26,16 @@ func main() {
 	log.With(log.S{"a", 1}).Info("with a slice")
 	log.WithJSON(log.M{"a": 1, "b": "haha"}).Info("with a map json")
 	log.WithJSON(log.S{"a", 1}).Info("with a slice json")
+
+	log.With(log.M{"a": 1}).With(log.M{"b": true}).Info("with called 2 times: M and M")
+	log.With(log.S{"a"}).With(log.S{true}).Info("with called 2 times: S and S")
+	log.With(log.M{"a": 1}).With(log.S{true}).Info("with called 2 times: M and S")
+	log.With(log.S{"a"}).With(log.M{"b": true}).Info("with called 2 times: S and M")
+	log.With(log.S{true, false}).With(2).Info("with called 2 times: S and object")
+	log.With(2).With(log.S{true, false}).Info("with called 2 times: object and S")
+	log.With(2).With(true).Info("with called 2 times: object and object")
+	log.With(log.S{"a"}).With(true).With(false).Info("with called 3 times: S and object and object")
+
+	log.If(true).With("haha").Info("should be printed")
+	log.If(false).With("haha").Info("shouldn't be printed")
 }

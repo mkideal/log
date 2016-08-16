@@ -1,5 +1,9 @@
 package logger
 
+import (
+	"errors"
+)
+
 // Level represents log level
 type Level int32
 
@@ -12,6 +16,8 @@ const (
 	TRACE
 	LevelNum
 )
+
+var ErrUnrecognizedLogLevel = errors.New("unrecognized log level")
 
 func (level Level) String() string {
 	switch level {
@@ -29,6 +35,15 @@ func (level Level) String() string {
 		return "TRACE"
 	}
 	return "INVALID"
+}
+
+func (level *Level) Decode(s string) error {
+	lv, ok := ParseLevel(s)
+	*level = lv
+	if !ok {
+		return ErrUnrecognizedLogLevel
+	}
+	return nil
 }
 
 // ParseLevel parses log level from string
