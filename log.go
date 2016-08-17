@@ -123,10 +123,10 @@ func If(ok bool) IfLogger { return IfLogger(ok) }
 // With returns a ContextLogger
 func With(v interface{}) ContextLogger { return &withLogger{isTrue: true, data: v} }
 
-// WithN returns a withLogger which data is a slice of interface{}
+// WithN returns a ContextLogger which data is a slice of interface{}
 func WithN(objs ...interface{}) ContextLogger { return &withLogger{isTrue: true, data: objs} }
 
-// WithJSON returns a withLogger which use JSONFormatter
+// WithJSON returns a ContextLogger which use JSONFormatter
 func WithJSON(v interface{}) ContextLogger {
 	return &withLogger{isTrue: true, data: v, formatter: jsonFormatter}
 }
