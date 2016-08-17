@@ -41,11 +41,11 @@ type WithLogger interface {
 	LogWith(level Level, calldepth int, b []byte, format string, args ...interface{})
 }
 
-func Stack(skipdepth int) []byte {
+func Stack(calldepth int) []byte {
 	var (
 		buf           = make([]byte, 1<<16) // 64k
 		nbytes        = runtime.Stack(buf, false)
-		ignorelinenum = 2*skipdepth + 1
+		ignorelinenum = 2*calldepth + 1
 		count         = 0
 		startIndex    = 0
 	)

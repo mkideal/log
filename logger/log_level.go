@@ -15,7 +15,7 @@ const (
 	INFO
 	DEBUG
 	TRACE
-	LevelNum
+	NumLevel
 )
 
 var ErrUnrecognizedLogLevel = errors.New("unrecognized log level")

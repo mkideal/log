@@ -1,12 +1,20 @@
 package main
 
 import (
+	"encoding/json"
+
 	"github.com/mkideal/log"
+	"github.com/mkideal/log/provider"
 )
 
 func main() {
 	// Init and defer Uninit
-	defer log.Uninit(log.InitMultiFile("./log", "app.log"))
+	//defer log.Uninit(log.InitMultiFile("./log", "app.log"))
+	config := provider.NewMultiFileOpts()
+	config.DebugDir = config.InfoDir
+	config.RootDir = "log"
+	b, _ := json.Marshal(config)
+	defer log.Uninit(log.Init("multifile", string(b)))
 	log.SetLevel(log.LvDEBUG)
 
 	log.Trace("%s cannot be printed, and trace subdirectory not created", "TRACE")

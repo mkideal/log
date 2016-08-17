@@ -24,9 +24,11 @@ type MultiFileOpts struct {
 }
 
 func NewMultiFileOpts() MultiFileOpts {
-	return MultiFileOpts{
+	opts := MultiFileOpts{
 		RootDir: ".",
 	}
+	opts.setDefaults()
+	return opts
 }
 
 func (opts *MultiFileOpts) setDefaults() {
@@ -59,7 +61,13 @@ func (opts *MultiFileOpts) setDefaults() {
 
 type MultiFile struct {
 	config MultiFileOpts
-	files  [logger.LevelNum]*File
+	files  [logger.NumLevel]*File
+	group  map[string][]logger.Level
+}
+
+func abs(path string) string {
+	s, _ := filepath.Abs(path)
+	return s
 }
 
 func NewMultiFile(opts string) logger.Provider {
@@ -67,6 +75,22 @@ func NewMultiFile(opts string) logger.Provider {
 	p.config = NewMultiFileOpts()
 	logger.UnmarshalOpts(opts, &p.config)
 	p.config.setDefaults()
+	dirs := map[logger.Level]string{
+		logger.TRACE: abs(filepath.Join(p.config.RootDir, p.config.TraceDir)),
+		logger.DEBUG: abs(filepath.Join(p.config.RootDir, p.config.DebugDir)),
+		logger.INFO:  abs(filepath.Join(p.config.RootDir, p.config.InfoDir)),
+		logger.WARN:  abs(filepath.Join(p.config.RootDir, p.config.WarnDir)),
+		logger.ERROR: abs(filepath.Join(p.config.RootDir, p.config.ErrorDir)),
+		logger.FATAL: abs(filepath.Join(p.config.RootDir, p.config.ErrorDir)),
+	}
+	p.group = map[string][]logger.Level{}
+	for lv, dir := range dirs {
+		if levels, ok := p.group[dir]; ok {
+			p.group[dir] = append(levels, lv)
+		} else {
+			p.group[dir] = []logger.Level{lv}
+		}
+	}
 	return p
 }
 
@@ -97,11 +121,14 @@ func (p *MultiFile) initForLevel(level logger.Level) error {
 	if level < 0 || int(level) >= len(p.files) {
 		return errOutOfRange
 	}
-	p.files[level] = newFile(p.configForLevel(level))
-	if level == logger.FATAL {
-		p.files[logger.ERROR] = p.files[level]
-	} else if level == logger.ERROR {
-		p.files[logger.FATAL] = p.files[level]
+	f := newFile(p.configForLevel(level))
+	p.files[level] = f
+	if levels, ok := p.group[abs(f.config.Dir)]; ok {
+		for _, lv := range levels {
+			if p.files[lv] == nil {
+				p.files[lv] = f
+			}
+		}
 	}
 	return nil
 }
