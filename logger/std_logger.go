@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"bytes"
 	"fmt"
 	stdlog "log"
 	"os"
@@ -23,8 +24,19 @@ func (l *stdLogger) GetLevel() Level      { return Level(atomic.LoadInt32((*int3
 func (l *stdLogger) SetLevel(level Level) { atomic.StoreInt32((*int32)(l), int32(level)) }
 
 func (l *stdLogger) output(calldepth int, level Level, format string, args ...interface{}) {
-	stdlog.Output(calldepth+3, fmt.Sprintf(format, args...))
-	if level == FATAL {
+	if level != FATAL {
+		stdlog.Output(calldepth+3, fmt.Sprintf(format, args...))
+	} else {
+		buf := new(bytes.Buffer)
+		fmt.Fprintf(buf, format, args...)
+		if buf.Len() == 0 || buf.Bytes()[buf.Len()-1] != '\n' {
+			buf.WriteByte('\n')
+		}
+		stackBuf := Stack(4)
+		buf.WriteString("========= BEGIN STACK TRACE =========\n")
+		buf.Write(stackBuf)
+		buf.WriteString("========== END STACK TRACE ==========\n")
+		l.output(calldepth, TRACE, buf.String())
 		os.Exit(1)
 	}
 }

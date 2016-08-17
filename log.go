@@ -121,12 +121,17 @@ func Fatal(format string, args ...interface{}) { glogger.Fatal(1, format, args..
 func If(ok bool) IfLogger { return IfLogger(ok) }
 
 // With returns a ContextLogger
-func With(v interface{}) ContextLogger { return &withLogger{isTrue: true, data: v} }
-
-// WithN returns a ContextLogger which data is a slice of interface{}
-func WithN(objs ...interface{}) ContextLogger { return &withLogger{isTrue: true, data: objs} }
+func With(objs ...interface{}) ContextLogger {
+	if len(objs) == 1 {
+		return &withLogger{isTrue: true, data: objs[0]}
+	}
+	return &withLogger{isTrue: true, data: objs}
+}
 
 // WithJSON returns a ContextLogger which use JSONFormatter
-func WithJSON(v interface{}) ContextLogger {
-	return &withLogger{isTrue: true, data: v, formatter: jsonFormatter}
+func WithJSON(objs ...interface{}) ContextLogger {
+	if len(objs) == 1 {
+		return &withLogger{isTrue: true, data: objs[0], formatter: jsonFormatter}
+	}
+	return &withLogger{isTrue: true, data: objs, formatter: jsonFormatter}
 }

@@ -35,7 +35,7 @@ func main() {
 	log.With("hello").Info("")
 	log.With(1).Info("With an int field")
 	log.With(true).Info("With a bool field")
-	log.WithN(1, "2", false).Info("With 3 fields")
+	log.With(1, "2", false).Info("With 3 fields")
 	log.With(log.M{"a": 1}).Info("With a map")
 	log.WithJSON(log.M{"a": 1}).Info("With a map and using JSONFormatter")
 

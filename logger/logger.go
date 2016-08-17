@@ -12,22 +12,52 @@ import (
 
 // Logger is the top-level object of log package
 type Logger interface {
+	// Run startup logger
 	Run()
+	// Quit quits logger
 	Quit()
+	// NoHeader ignore header while output logs
 	NoHeader()
+	// GetLevel gets current log level
 	GetLevel() Level
+	// SetLevel sets log level
 	SetLevel(level Level)
+	// Trace output trace-level logs
 	Trace(calldepth int, format string, args ...interface{})
+	// Debug output debug-level logs
 	Debug(calldepth int, format string, args ...interface{})
+	// Info output info-level logs
 	Info(calldepth int, format string, args ...interface{})
+	// Warn output warn-level logs
 	Warn(calldepth int, format string, args ...interface{})
+	// Error output error-level logs
 	Error(calldepth int, format string, args ...interface{})
+	// Fatal output error-level logs
 	Fatal(calldepth int, format string, args ...interface{})
 }
 
 type WithLogger interface {
 	Logger
 	LogWith(level Level, calldepth int, b []byte, format string, args ...interface{})
+}
+
+func Stack(skipdepth int) []byte {
+	var (
+		buf           = make([]byte, 1<<16) // 64k
+		nbytes        = runtime.Stack(buf, false)
+		ignorelinenum = 2*skipdepth + 1
+		count         = 0
+		startIndex    = 0
+	)
+	for i := range buf {
+		if buf[i] == '\n' {
+			count++
+			if count == ignorelinenum {
+				startIndex = i + 1
+			}
+		}
+	}
+	return buf[startIndex:nbytes]
 }
 
 // logger implements Logger interface
@@ -180,6 +210,12 @@ func (l *logger) output(level Level, calldepth int, b []byte, format string, arg
 	if buf.Bytes()[buf.Len()-1] != '\n' {
 		buf.WriteByte('\n')
 	}
+	if level == FATAL {
+		stackBuf := Stack(4)
+		buf.WriteString("========= BEGIN STACK TRACE =========\n")
+		buf.Write(stackBuf)
+		buf.WriteString("========== END STACK TRACE ==========\n")
+	}
 	buf.level = level
 	l.writeQueue <- buf
 }
@@ -220,6 +256,7 @@ func (l *logger) Error(calldepth int, format string, args ...interface{}) {
 
 func (l *logger) Fatal(calldepth int, format string, args ...interface{}) {
 	l.output(FATAL, calldepth, nil, format, args...)
+	select {}
 }
 
 // LogWith implements WithLogger

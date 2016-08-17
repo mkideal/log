@@ -31,6 +31,13 @@ func TestLevel(t *testing.T) {
 	assert.Equal(t, ERROR, MustParseLevel("error"))
 	assert.Equal(t, FATAL, MustParseLevel("fatal"))
 
+	assert.Equal(t, TRACE, MustParseLevel("Trace"))
+	assert.Equal(t, DEBUG, MustParseLevel("Debug"))
+	assert.Equal(t, INFO, MustParseLevel("Info"))
+	assert.Equal(t, WARN, MustParseLevel("Warn"))
+	assert.Equal(t, ERROR, MustParseLevel("Error"))
+	assert.Equal(t, FATAL, MustParseLevel("Fatal"))
+
 	assert.Equal(t, TRACE, MustParseLevel("T"))
 	assert.Equal(t, DEBUG, MustParseLevel("D"))
 	assert.Equal(t, INFO, MustParseLevel("I"))
@@ -126,7 +133,7 @@ hello ERROR
 hello ERROR
 `
 
-	p.Close()
+	l.Quit()
 	if got := p.data.String(); got != expected {
 		t.Errorf("unexpected print: `%s' vs `%s'", got, expected)
 	}
