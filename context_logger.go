@@ -31,9 +31,8 @@ type S []interface{}
 
 // Context represents a context of logger
 type Context interface {
-	With(v interface{}) ContextLogger
-	WithN(objs ...interface{}) ContextLogger
-	WithJSON(v interface{}) ContextLogger
+	With(objs ...interface{}) ContextLogger
+	WithJSON(objs ...interface{}) ContextLogger
 	SetFormatter(f Formatter) ContextLogger
 }
 
@@ -112,28 +111,20 @@ func (wl *withLogger) bytes() []byte {
 	return wl.b
 }
 
-func (wl *withLogger) With(v interface{}) ContextLogger {
-	wl.b = nil
-	if wl.data == nil {
-		wl.data = v
-		return wl
-	}
-	wl.migrateValue(v)
-	return wl
-}
-
-func (wl *withLogger) WithN(objs ...interface{}) ContextLogger {
+func (wl *withLogger) With(objs ...interface{}) ContextLogger {
 	wl.b = nil
 	if wl.data == nil {
 		wl.data = objs
 		return wl
 	}
-	wl.data = append(S{wl.data}, objs...)
+	for _, obj := range objs {
+		wl.migrateValue(obj)
+	}
 	return wl
 }
 
-func (wl *withLogger) WithJSON(v interface{}) ContextLogger {
-	return wl.With(v).SetFormatter(jsonFormatter)
+func (wl *withLogger) WithJSON(objs ...interface{}) ContextLogger {
+	return wl.With(objs...).SetFormatter(jsonFormatter)
 }
 
 func (wl *withLogger) migrateValue(v interface{}) {

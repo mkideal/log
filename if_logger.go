@@ -7,29 +7,17 @@ func (il IfLogger) If(ok bool) IfLogger     { return IfLogger(ok) }
 func (il IfLogger) Else() IfLogger          { return !il }
 func (il IfLogger) ElseIf(ok bool) IfLogger { return !il && IfLogger(ok) }
 
-// With implements Context.With method
-func (il IfLogger) With(v interface{}) ContextLogger {
-	return &withLogger{
-		isTrue: bool(il),
-		data:   v,
-	}
-}
-
 // WithN implements Context.WithN method
-func (il IfLogger) WithN(objs ...interface{}) ContextLogger {
-	return &withLogger{
-		isTrue: bool(il),
-		data:   objs,
+func (il IfLogger) With(objs ...interface{}) ContextLogger {
+	if len(objs) == 1 {
+		return &withLogger{isTrue: bool(il), data: objs[0]}
 	}
+	return &withLogger{isTrue: bool(il), data: objs}
 }
 
 // WithJSON implements Context.WithJSON method
-func (il IfLogger) WithJSON(v interface{}) ContextLogger {
-	return &withLogger{
-		isTrue:    bool(il),
-		data:      v,
-		formatter: jsonFormatter,
-	}
+func (il IfLogger) WithJSON(objs ...interface{}) ContextLogger {
+	return il.With(objs...).SetFormatter(jsonFormatter)
 }
 
 // SetFormatter implements Context.SetFormatter method
