@@ -40,13 +40,18 @@ func InitWithLogger(l logger.Logger) error {
 	return nil
 }
 
-// InitWithProvider inits global logger with a specified provider
+// InitWithProvider inits global logger(sync) with a specified provider
 func InitWithProvider(p logger.Provider) error {
-	glogger.Quit()
-	glogger = logger.New(p)
-	glogger.SetLevel(LvINFO)
-	glogger.Run()
-	return nil
+	l := logger.New(p)
+	l.SetLevel(LvINFO)
+	return InitWithLogger(l)
+}
+
+// InitSyncWithProvider inits global logger(async) with a specified provider
+func InitSyncWithProvider(p logger.Provider) error {
+	l := logger.NewSync(p)
+	l.SetLevel(LvINFO)
+	return InitWithLogger(l)
 }
 
 // Init inits global logger with providerType and opts (opts is a json string or empty)

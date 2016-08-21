@@ -72,24 +72,33 @@ type logger struct {
 	running    int32
 	writeQueue chan *buffer
 	quitNotify chan struct{}
+
+	async       bool
+	writeLocker sync.Mutex // used while async==false
 }
 
-// New creates logger with provider
+// New creates async logger with provider
 func New(provider Provider) Logger {
-	return newLogger(provider)
+	return newLogger(provider, true)
 }
 
-func newLogger(provider Provider) *logger {
+// NewSync creates a sync logger with provider
+func NewSync(provider Provider) Logger {
+	return newLogger(provider, false)
+}
+
+func newLogger(provider Provider, async bool) *logger {
 	return &logger{
 		provider:   provider,
 		bufferList: new(buffer),
 		writeQueue: make(chan *buffer, 8192),
 		quitNotify: make(chan struct{}),
+		async:      async,
 	}
 }
 
 func (l *logger) Run() {
-	if atomic.AddInt32(&l.running, 1) > 1 {
+	if !l.async || atomic.AddInt32(&l.running, 1) > 1 {
 		return
 	}
 	go func() {
@@ -97,20 +106,24 @@ func (l *logger) Run() {
 			if buf.quit {
 				break
 			}
-			l.provider.Write(buf.level, buf.headerLength, buf.Bytes())
-			if buf.level == FATAL {
-				l.provider.Close()
-				os.Exit(1)
-			}
-			l.putBuffer(buf)
+			l.writeBuffer(buf)
 		}
 		atomic.StoreInt32(&l.running, 0)
 		l.quitNotify <- struct{}{}
 	}()
 }
 
+func (l *logger) writeBuffer(buf *buffer) {
+	l.provider.Write(buf.level, buf.headerLength, buf.Bytes())
+	if buf.level == FATAL {
+		l.provider.Close()
+		os.Exit(1)
+	}
+	l.putBuffer(buf)
+}
+
 func (l *logger) Quit() {
-	if atomic.LoadInt32(&l.running) == 0 {
+	if !l.async || atomic.LoadInt32(&l.running) == 0 {
 		return
 	}
 	l.writeQueue <- &buffer{quit: true}
@@ -217,7 +230,13 @@ func (l *logger) output(level Level, calldepth int, data []byte, format string, 
 		buf.WriteString("========== END STACK TRACE ==========\n")
 	}
 	buf.level = level
-	l.writeQueue <- buf
+	if l.async {
+		l.writeQueue <- buf
+	} else {
+		l.writeLocker.Lock()
+		l.writeBuffer(buf)
+		l.writeLocker.Unlock()
+	}
 }
 
 func (l *logger) NoHeader()         { atomic.StoreInt32(&l.noHeader, 1) }
