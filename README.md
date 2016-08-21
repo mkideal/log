@@ -330,9 +330,8 @@ log.If(iq < 250).Info("IQ less than 250").
 ## With structured fields
 
 ```go
-func With(v interface{}) *WithLogger
-func WithN(objs ...interface{}) *WithLogger
-func WithJSON(v interface{}) *WithLogger
+func With(objs ...interface{}) *WithLogger
+func WithJSON(objs ...interface{}) *WithLogger
 ```
 
 `WithLogger` has following methods:
