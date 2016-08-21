@@ -31,8 +31,8 @@ type S []interface{}
 
 // Context represents a context of logger
 type Context interface {
-	With(objs ...interface{}) ContextLogger
-	WithJSON(objs ...interface{}) ContextLogger
+	With(values ...interface{}) ContextLogger
+	WithJSON(values ...interface{}) ContextLogger
 	SetFormatter(f Formatter) ContextLogger
 }
 
@@ -46,8 +46,8 @@ type ContextLogger interface {
 	Fatal(format string, args ...interface{}) ContextLogger
 }
 
-// withLogger implements ContextLogger
-type withLogger struct {
+// contextLogger implements ContextLogger
+type contextLogger struct {
 	isTrue    bool
 	data      interface{}
 	formatter Formatter
@@ -95,44 +95,48 @@ func toBytes(v interface{}) []byte {
 	}
 }
 
-func (wl *withLogger) bytes() []byte {
-	if wl.b != nil {
-		return wl.b
+func (l *contextLogger) bytes() []byte {
+	if l.b != nil {
+		return l.b
 	}
-	if wl.formatter != nil {
-		wl.b = wl.formatter.Format(wl.data)
-		return wl.b
+	if l.formatter != nil {
+		l.b = l.formatter.Format(l.data)
+		return l.b
 	}
-	wl.b = toBytes(wl.data)
-	return wl.b
+	l.b = toBytes(l.data)
+	return l.b
 }
 
-func (wl *withLogger) With(objs ...interface{}) ContextLogger {
-	wl.b = nil
-	if wl.data == nil {
-		wl.data = objs
-		return wl
+func (l *contextLogger) With(values ...interface{}) ContextLogger {
+	l.b = nil
+	if l.data == nil {
+		if len(values) == 0 {
+			l.data = values[0]
+		} else {
+			l.data = values
+		}
+		return l
 	}
-	for _, obj := range objs {
-		wl.migrateValue(obj)
+	for _, obj := range values {
+		l.migrateValue(obj)
 	}
-	return wl
+	return l
 }
 
-func (wl *withLogger) WithJSON(objs ...interface{}) ContextLogger {
-	return wl.With(objs...).SetFormatter(jsonFormatter)
+func (l *contextLogger) WithJSON(values ...interface{}) ContextLogger {
+	return l.With(values...).SetFormatter(jsonFormatter)
 }
 
-func (wl *withLogger) migrateValue(v interface{}) {
-	m1, ok1 := wl.data.(M)
+func (l *contextLogger) migrateValue(v interface{}) {
+	m1, ok1 := l.data.(M)
 	m2, ok2 := v.(M)
 	if ok1 && ok2 {
 		for key, val := range m2 {
 			m1[key] = val
 		}
-		wl.data = m1
+		l.data = m1
 	} else {
-		s1, ok1 := wl.data.(S)
+		s1, ok1 := l.data.(S)
 		s2, ok2 := v.(S)
 		if ok1 {
 			if ok2 {
@@ -142,25 +146,25 @@ func (wl *withLogger) migrateValue(v interface{}) {
 			} else {
 				s1 = append(s1, v)
 			}
-			wl.data = s1
+			l.data = s1
 		} else {
 			if ok2 {
-				wl.data = append(S{wl.data}, s2...)
+				l.data = append(S{l.data}, s2...)
 			} else {
-				wl.data = S{wl.data, v}
+				l.data = S{l.data, v}
 			}
 		}
 	}
 }
 
-func (wl *withLogger) SetFormatter(f Formatter) ContextLogger {
-	wl.formatter = f
-	wl.b = nil
-	return wl
+func (l *contextLogger) SetFormatter(f Formatter) ContextLogger {
+	l.formatter = f
+	l.b = nil
+	return l
 }
 
-func (wl *withLogger) formatMessage(format string, args ...interface{}) string {
-	buf := bytes.NewBuffer(wl.bytes())
+func (l *contextLogger) formatMessage(format string, args ...interface{}) string {
+	buf := bytes.NewBuffer(l.bytes())
 	if buf.Len() > 0 && len(format) > 0 {
 		buf.WriteString(" | ")
 	}
@@ -168,68 +172,68 @@ func (wl *withLogger) formatMessage(format string, args ...interface{}) string {
 	return buf.String()
 }
 
-func (wl *withLogger) Trace(format string, args ...interface{}) ContextLogger {
-	if wl.isTrue && glogger.GetLevel() >= LvTRACE {
-		if l, ok := glogger.(logger.WithLogger); ok {
-			l.LogWith(LvTRACE, 1, wl.bytes(), format, args...)
+func (l *contextLogger) Trace(format string, args ...interface{}) ContextLogger {
+	if l.isTrue && glogger.GetLevel() >= LvTRACE {
+		if wl, ok := glogger.(logger.WithLogger); ok {
+			wl.LogWith(LvTRACE, 1, l.bytes(), format, args...)
 		} else {
-			glogger.Trace(1, wl.formatMessage(format, args...))
+			glogger.Trace(1, l.formatMessage(format, args...))
 		}
 	}
-	return wl
+	return l
 }
 
-func (wl *withLogger) Debug(format string, args ...interface{}) ContextLogger {
-	if wl.isTrue && glogger.GetLevel() >= LvDEBUG {
-		if l, ok := glogger.(logger.WithLogger); ok {
-			l.LogWith(LvDEBUG, 1, wl.bytes(), format, args...)
+func (l *contextLogger) Debug(format string, args ...interface{}) ContextLogger {
+	if l.isTrue && glogger.GetLevel() >= LvDEBUG {
+		if wl, ok := glogger.(logger.WithLogger); ok {
+			wl.LogWith(LvDEBUG, 1, l.bytes(), format, args...)
 		} else {
-			glogger.Debug(1, wl.formatMessage(format, args...))
+			glogger.Debug(1, l.formatMessage(format, args...))
 		}
 	}
-	return wl
+	return l
 }
 
-func (wl *withLogger) Info(format string, args ...interface{}) ContextLogger {
-	if wl.isTrue && glogger.GetLevel() >= LvINFO {
-		if l, ok := glogger.(logger.WithLogger); ok {
-			l.LogWith(LvINFO, 1, wl.bytes(), format, args...)
+func (l *contextLogger) Info(format string, args ...interface{}) ContextLogger {
+	if l.isTrue && glogger.GetLevel() >= LvINFO {
+		if wl, ok := glogger.(logger.WithLogger); ok {
+			wl.LogWith(LvINFO, 1, l.bytes(), format, args...)
 		} else {
-			glogger.Info(1, wl.formatMessage(format, args...))
+			glogger.Info(1, l.formatMessage(format, args...))
 		}
 	}
-	return wl
+	return l
 }
 
-func (wl *withLogger) Warn(format string, args ...interface{}) ContextLogger {
-	if wl.isTrue && glogger.GetLevel() >= LvWARN {
-		if l, ok := glogger.(logger.WithLogger); ok {
-			l.LogWith(LvWARN, 1, wl.bytes(), format, args...)
+func (l *contextLogger) Warn(format string, args ...interface{}) ContextLogger {
+	if l.isTrue && glogger.GetLevel() >= LvWARN {
+		if wl, ok := glogger.(logger.WithLogger); ok {
+			wl.LogWith(LvWARN, 1, l.bytes(), format, args...)
 		} else {
-			glogger.Warn(1, wl.formatMessage(format, args...))
+			glogger.Warn(1, l.formatMessage(format, args...))
 		}
 	}
-	return wl
+	return l
 }
 
-func (wl *withLogger) Error(format string, args ...interface{}) ContextLogger {
-	if wl.isTrue && glogger.GetLevel() >= LvERROR {
-		if l, ok := glogger.(logger.WithLogger); ok {
-			l.LogWith(LvERROR, 1, wl.bytes(), format, args...)
+func (l *contextLogger) Error(format string, args ...interface{}) ContextLogger {
+	if l.isTrue && glogger.GetLevel() >= LvERROR {
+		if wl, ok := glogger.(logger.WithLogger); ok {
+			wl.LogWith(LvERROR, 1, l.bytes(), format, args...)
 		} else {
-			glogger.Error(1, wl.formatMessage(format, args...))
+			glogger.Error(1, l.formatMessage(format, args...))
 		}
 	}
-	return wl
+	return l
 }
 
-func (wl *withLogger) Fatal(format string, args ...interface{}) ContextLogger {
-	if wl.isTrue {
-		if l, ok := glogger.(logger.WithLogger); ok {
-			l.LogWith(LvFATAL, 1, wl.bytes(), format, args...)
+func (l *contextLogger) Fatal(format string, args ...interface{}) ContextLogger {
+	if l.isTrue {
+		if wl, ok := glogger.(logger.WithLogger); ok {
+			wl.LogWith(LvFATAL, 1, l.bytes(), format, args...)
 		} else {
-			glogger.Fatal(1, wl.formatMessage(format, args...))
+			glogger.Fatal(1, l.formatMessage(format, args...))
 		}
 	}
-	return wl
+	return l
 }

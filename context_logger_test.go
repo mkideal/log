@@ -58,7 +58,7 @@ var tests = func() []test {
 func checkTestResult(t *testing.T, w *bytes.Buffer, expected string, prefix string) {
 	got := w.String()
 	w.Reset()
-	if expected != "" {
+	if expected != "" && expected[len(expected)-1] != '\n' {
 		expected += "\n"
 	}
 	if got != expected {

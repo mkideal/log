@@ -30,21 +30,21 @@ func (il IfLogger) ElseIf(ok bool) IfLogger {
 }
 
 // With implements Context.With method
-func (il IfLogger) With(objs ...interface{}) ContextLogger {
-	if len(objs) == 1 {
-		return &withLogger{isTrue: il.ok(), data: objs[0]}
+func (il IfLogger) With(values ...interface{}) ContextLogger {
+	if len(values) == 1 {
+		return &contextLogger{isTrue: il.ok(), data: values[0]}
 	}
-	return &withLogger{isTrue: il.ok(), data: objs}
+	return &contextLogger{isTrue: il.ok(), data: values}
 }
 
 // WithJSON implements Context.WithJSON method
-func (il IfLogger) WithJSON(objs ...interface{}) ContextLogger {
-	return il.With(objs...).SetFormatter(jsonFormatter)
+func (il IfLogger) WithJSON(values ...interface{}) ContextLogger {
+	return il.With(values...).SetFormatter(jsonFormatter)
 }
 
 // SetFormatter implements Context.SetFormatter method
 func (il IfLogger) SetFormatter(f Formatter) ContextLogger {
-	return &withLogger{
+	return &contextLogger{
 		isTrue:    il.ok(),
 		formatter: f,
 	}

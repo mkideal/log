@@ -130,17 +130,17 @@ func If(ok bool) IfLogger {
 }
 
 // With returns a ContextLogger
-func With(objs ...interface{}) ContextLogger {
-	if len(objs) == 1 {
-		return &withLogger{isTrue: true, data: objs[0]}
+func With(values ...interface{}) ContextLogger {
+	if len(values) == 1 {
+		return &contextLogger{isTrue: true, data: values[0]}
 	}
-	return &withLogger{isTrue: true, data: objs}
+	return &contextLogger{isTrue: true, data: values}
 }
 
 // WithJSON returns a ContextLogger using JSONFormatter
-func WithJSON(objs ...interface{}) ContextLogger {
-	if len(objs) == 1 {
-		return &withLogger{isTrue: true, data: objs[0], formatter: jsonFormatter}
+func WithJSON(values ...interface{}) ContextLogger {
+	if len(values) == 1 {
+		return &contextLogger{isTrue: true, data: values[0], formatter: jsonFormatter}
 	}
-	return &withLogger{isTrue: true, data: objs, formatter: jsonFormatter}
+	return &contextLogger{isTrue: true, data: values, formatter: jsonFormatter}
 }
