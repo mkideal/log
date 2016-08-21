@@ -7,7 +7,7 @@ func (il IfLogger) If(ok bool) IfLogger     { return IfLogger(ok) }
 func (il IfLogger) Else() IfLogger          { return !il }
 func (il IfLogger) ElseIf(ok bool) IfLogger { return !il && IfLogger(ok) }
 
-// WithN implements Context.WithN method
+// With implements Context.With method
 func (il IfLogger) With(objs ...interface{}) ContextLogger {
 	if len(objs) == 1 {
 		return &withLogger{isTrue: bool(il), data: objs[0]}

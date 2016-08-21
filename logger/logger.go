@@ -16,29 +16,29 @@ type Logger interface {
 	Run()
 	// Quit quits logger
 	Quit()
-	// NoHeader ignore header while output logs
+	// NoHeader ignores header while output logs
 	NoHeader()
 	// GetLevel gets current log level
 	GetLevel() Level
 	// SetLevel sets log level
 	SetLevel(level Level)
-	// Trace output trace-level logs
+	// Trace outputs trace-level logs
 	Trace(calldepth int, format string, args ...interface{})
-	// Debug output debug-level logs
+	// Debug outputs debug-level logs
 	Debug(calldepth int, format string, args ...interface{})
-	// Info output info-level logs
+	// Info outputs info-level logs
 	Info(calldepth int, format string, args ...interface{})
-	// Warn output warn-level logs
+	// Warn outputs warn-level logs
 	Warn(calldepth int, format string, args ...interface{})
-	// Error output error-level logs
+	// Error outputs error-level logs
 	Error(calldepth int, format string, args ...interface{})
-	// Fatal output error-level logs
+	// Fatal outputs fatal-level logs
 	Fatal(calldepth int, format string, args ...interface{})
 }
 
 type WithLogger interface {
 	Logger
-	LogWith(level Level, calldepth int, b []byte, format string, args ...interface{})
+	LogWith(level Level, calldepth int, data []byte, format string, args ...interface{})
 }
 
 func Stack(calldepth int) []byte {
@@ -197,11 +197,11 @@ func (l *logger) header(level Level, calldepth int) *buffer {
 	return l.formatHeader(time.Now(), level, file, line)
 }
 
-func (l *logger) output(level Level, calldepth int, b []byte, format string, args ...interface{}) {
+func (l *logger) output(level Level, calldepth int, data []byte, format string, args ...interface{}) {
 	buf := l.header(level, calldepth+3)
 	buf.headerLength = buf.Len()
-	if len(b) > 0 {
-		buf.Write(b)
+	if len(data) > 0 {
+		buf.Write(data)
 		if len(format) > 0 {
 			buf.WriteString(" | ")
 		}
@@ -260,8 +260,8 @@ func (l *logger) Fatal(calldepth int, format string, args ...interface{}) {
 }
 
 // LogWith implements WithLogger
-func (l *logger) LogWith(level Level, calldepth int, b []byte, format string, args ...interface{}) {
+func (l *logger) LogWith(level Level, calldepth int, data []byte, format string, args ...interface{}) {
 	if l.GetLevel() >= level {
-		l.output(level, calldepth, b, format, args...)
+		l.output(level, calldepth, data, format, args...)
 	}
 }

@@ -49,13 +49,11 @@ func InitWithProvider(p logger.Provider) error {
 	return nil
 }
 
-// Init inits global logger with providerType and opts
-// * providerType: providerType should be one of {file, console}
-// * opts        : opts is a json string or empty
+// Init inits global logger with providerType and opts (opts is a json string or empty)
 func Init(providerType, opts string) error {
 	pcreator := logger.Lookup(providerType)
 	if pcreator == nil {
-		return errors.New("unsupported provider type: " + providerType)
+		return errors.New("unregistered provider type: " + providerType)
 	}
 	return InitWithProvider(pcreator(opts))
 }
@@ -128,7 +126,7 @@ func With(objs ...interface{}) ContextLogger {
 	return &withLogger{isTrue: true, data: objs}
 }
 
-// WithJSON returns a ContextLogger which use JSONFormatter
+// WithJSON returns a ContextLogger using JSONFormatter
 func WithJSON(objs ...interface{}) ContextLogger {
 	if len(objs) == 1 {
 		return &withLogger{isTrue: true, data: objs[0], formatter: jsonFormatter}
