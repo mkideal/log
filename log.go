@@ -121,7 +121,13 @@ func Error(format string, args ...interface{}) { glogger.Error(1, format, args..
 func Fatal(format string, args ...interface{}) { glogger.Fatal(1, format, args...) }
 
 // If returns an `IfLogger`
-func If(ok bool) IfLogger { return IfLogger(ok) }
+func If(ok bool) IfLogger {
+	if ok {
+		return IfLogger(0xFF)
+	} else {
+		return IfLogger(0x00)
+	}
+}
 
 // With returns a ContextLogger
 func With(objs ...interface{}) ContextLogger {

@@ -37,7 +37,6 @@ type Logger interface {
 }
 
 type WithLogger interface {
-	Logger
 	LogWith(level Level, calldepth int, data []byte, format string, args ...interface{})
 }
 
@@ -87,13 +86,34 @@ func NewSync(provider Provider) Logger {
 	return newLogger(provider, false)
 }
 
-func newLogger(provider Provider, async bool) *logger {
-	return &logger{
+// NewLoggerForTest creates a logger for test
+func NewLoggerForTest(provider Provider, async bool, with bool) Logger {
+	l := newLogger(provider, async)
+	if with {
+		return l
+	}
+	return l.logger
+}
+
+func newLogger(provider Provider, async bool) *withLogger {
+	l := &logger{
 		provider:   provider,
 		bufferList: new(buffer),
 		writeQueue: make(chan *buffer, 8192),
 		quitNotify: make(chan struct{}),
 		async:      async,
+	}
+	return &withLogger{l}
+}
+
+type withLogger struct {
+	*logger
+}
+
+// LogWith implements WithLogger
+func (l *withLogger) LogWith(level Level, calldepth int, data []byte, format string, args ...interface{}) {
+	if l.GetLevel() >= level {
+		l.output(level, calldepth, data, format, args...)
 	}
 }
 
@@ -220,7 +240,7 @@ func (l *logger) output(level Level, calldepth int, data []byte, format string, 
 		}
 	}
 	fmt.Fprintf(buf, format, args...)
-	if buf.Bytes()[buf.Len()-1] != '\n' {
+	if buf.Len() > 0 && buf.Bytes()[buf.Len()-1] != '\n' {
 		buf.WriteByte('\n')
 	}
 	if level == FATAL {
@@ -228,6 +248,9 @@ func (l *logger) output(level Level, calldepth int, data []byte, format string, 
 		buf.WriteString("========= BEGIN STACK TRACE =========\n")
 		buf.Write(stackBuf)
 		buf.WriteString("========== END STACK TRACE ==========\n")
+	}
+	if buf.Len() == 0 {
+		return
 	}
 	buf.level = level
 	if l.async {
@@ -276,11 +299,4 @@ func (l *logger) Error(calldepth int, format string, args ...interface{}) {
 func (l *logger) Fatal(calldepth int, format string, args ...interface{}) {
 	l.output(FATAL, calldepth, nil, format, args...)
 	select {}
-}
-
-// LogWith implements WithLogger
-func (l *logger) LogWith(level Level, calldepth int, data []byte, format string, args ...interface{}) {
-	if l.GetLevel() >= level {
-		l.output(level, calldepth, data, format, args...)
-	}
 }

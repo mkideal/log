@@ -83,10 +83,6 @@ func toBytes(v interface{}) []byte {
 		return strconv.AppendUint(nil, uint64(data), 10)
 	case uint64:
 		return strconv.AppendUint(nil, data, 10)
-	case float32:
-		return strconv.AppendFloat(nil, float64(data), 'E', -1, 64)
-	case float64:
-		return strconv.AppendFloat(nil, data, 'E', -1, 64)
 	case bool:
 		if data {
 			return bytesTrue
@@ -163,14 +159,21 @@ func (wl *withLogger) SetFormatter(f Formatter) ContextLogger {
 	return wl
 }
 
+func (wl *withLogger) formatMessage(format string, args ...interface{}) string {
+	buf := bytes.NewBuffer(wl.bytes())
+	if buf.Len() > 0 && len(format) > 0 {
+		buf.WriteString(" | ")
+	}
+	fmt.Fprintf(buf, format, args...)
+	return buf.String()
+}
+
 func (wl *withLogger) Trace(format string, args ...interface{}) ContextLogger {
 	if wl.isTrue && glogger.GetLevel() >= LvTRACE {
 		if l, ok := glogger.(logger.WithLogger); ok {
 			l.LogWith(LvTRACE, 1, wl.bytes(), format, args...)
 		} else {
-			buf := bytes.NewBuffer(wl.bytes())
-			fmt.Fprintf(buf, format, args...)
-			glogger.Trace(1, buf.String())
+			glogger.Trace(1, wl.formatMessage(format, args...))
 		}
 	}
 	return wl
@@ -181,9 +184,7 @@ func (wl *withLogger) Debug(format string, args ...interface{}) ContextLogger {
 		if l, ok := glogger.(logger.WithLogger); ok {
 			l.LogWith(LvDEBUG, 1, wl.bytes(), format, args...)
 		} else {
-			buf := bytes.NewBuffer(wl.bytes())
-			fmt.Fprintf(buf, format, args...)
-			glogger.Debug(1, buf.String())
+			glogger.Debug(1, wl.formatMessage(format, args...))
 		}
 	}
 	return wl
@@ -194,9 +195,7 @@ func (wl *withLogger) Info(format string, args ...interface{}) ContextLogger {
 		if l, ok := glogger.(logger.WithLogger); ok {
 			l.LogWith(LvINFO, 1, wl.bytes(), format, args...)
 		} else {
-			buf := bytes.NewBuffer(wl.bytes())
-			fmt.Fprintf(buf, format, args...)
-			glogger.Info(1, buf.String())
+			glogger.Info(1, wl.formatMessage(format, args...))
 		}
 	}
 	return wl
@@ -207,9 +206,7 @@ func (wl *withLogger) Warn(format string, args ...interface{}) ContextLogger {
 		if l, ok := glogger.(logger.WithLogger); ok {
 			l.LogWith(LvWARN, 1, wl.bytes(), format, args...)
 		} else {
-			buf := bytes.NewBuffer(wl.bytes())
-			fmt.Fprintf(buf, format, args...)
-			glogger.Warn(1, buf.String())
+			glogger.Warn(1, wl.formatMessage(format, args...))
 		}
 	}
 	return wl
@@ -220,9 +217,7 @@ func (wl *withLogger) Error(format string, args ...interface{}) ContextLogger {
 		if l, ok := glogger.(logger.WithLogger); ok {
 			l.LogWith(LvERROR, 1, wl.bytes(), format, args...)
 		} else {
-			buf := bytes.NewBuffer(wl.bytes())
-			fmt.Fprintf(buf, format, args...)
-			glogger.Error(1, buf.String())
+			glogger.Error(1, wl.formatMessage(format, args...))
 		}
 	}
 	return wl
@@ -233,9 +228,7 @@ func (wl *withLogger) Fatal(format string, args ...interface{}) ContextLogger {
 		if l, ok := glogger.(logger.WithLogger); ok {
 			l.LogWith(LvFATAL, 1, wl.bytes(), format, args...)
 		} else {
-			buf := bytes.NewBuffer(wl.bytes())
-			fmt.Fprintf(buf, format, args...)
-			glogger.Fatal(1, buf.String())
+			glogger.Fatal(1, wl.formatMessage(format, args...))
 		}
 	}
 	return wl
