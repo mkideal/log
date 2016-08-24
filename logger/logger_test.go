@@ -2,7 +2,6 @@ package logger
 
 import (
 	"bytes"
-	"sync"
 	"testing"
 	"time"
 
@@ -68,7 +67,7 @@ func TestLevel(t *testing.T) {
 }
 
 func TestFormatHeader(t *testing.T) {
-	l := newLogger(nil)
+	l := newLogger(nil, true)
 	for expected, now := range map[string]time.Time{
 		"[T 2000/01/02 03:04:05.006 ???:0] ": time.Date(2000, 1, 2, 3, 4, 5, 6E6, time.Local),
 		"[T 2000/11/22 11:22:11.022 ???:0] ": time.Date(2000, 11, 22, 11, 22, 11, 22E6, time.Local),
@@ -81,7 +80,6 @@ func TestFormatHeader(t *testing.T) {
 }
 
 type mockProvider struct {
-	sync.WaitGroup
 	data *bytes.Buffer
 }
 
@@ -91,16 +89,14 @@ func newMockProvider() *mockProvider {
 
 func (p *mockProvider) Write(level Level, headerLength int, data []byte) error {
 	_, err := p.data.Write(data[headerLength:])
-	p.Done()
 	return err
 }
 
-func (p *mockProvider) Close() error { p.Wait(); return nil }
+func (p *mockProvider) Close() error { return nil }
 
 func TestLogPrint(t *testing.T) {
 	p := newMockProvider()
-	l := newLogger(p)
-	l.Run()
+	l := newLogger(p, false)
 
 	print := func() {
 		l.Trace(0, "hello %v", TRACE)
@@ -110,7 +106,6 @@ func TestLogPrint(t *testing.T) {
 		l.Error(0, "hello %v", ERROR)
 	}
 
-	p.Add(5 + 4 + 3 + 2 + 1)
 	for _, level := range []Level{TRACE, DEBUG, INFO, WARN, ERROR} {
 		l.SetLevel(level)
 		print()
@@ -133,8 +128,36 @@ hello ERROR
 hello ERROR
 `
 
-	l.Quit()
 	if got := p.data.String(); got != expected {
 		t.Errorf("unexpected print: `%s' vs `%s'", got, expected)
 	}
+}
+
+type mockHandler struct {
+	level Level
+	body  []byte
+	desc  []byte
+}
+
+func (h *mockHandler) Handle(e Entry) error {
+	e2 := e.Clone()
+	h.level = e2.Level()
+	h.body = e2.Body()
+	h.desc = e2.Desc()
+	return nil
+}
+
+func TestHook(t *testing.T) {
+	l := newLogger(newMockProvider(), false)
+	l.SetLevel(TRACE)
+	hanlder := new(mockHandler)
+	l.Hook(hanlder)
+
+	data := []byte("data")
+	desc := "description"
+	l.LogWith(INFO, 1, data, desc)
+
+	assert.Equal(t, string(data), string(hanlder.body))
+	assert.Equal(t, desc, string(hanlder.desc))
+	assert.Equal(t, INFO, hanlder.level)
 }
