@@ -174,7 +174,7 @@ func (l *contextLogger) formatMessage(format string, args ...interface{}) string
 
 func (l *contextLogger) Trace(format string, args ...interface{}) ContextLogger {
 	if l.isTrue && glogger.GetLevel() >= LvTRACE {
-		if wl, ok := glogger.(logger.WithLogger); ok {
+		if wl, ok := glogger.(logger.With); ok {
 			wl.LogWith(LvTRACE, 1, l.bytes(), format, args...)
 		} else {
 			glogger.Trace(1, l.formatMessage(format, args...))
@@ -185,7 +185,7 @@ func (l *contextLogger) Trace(format string, args ...interface{}) ContextLogger 
 
 func (l *contextLogger) Debug(format string, args ...interface{}) ContextLogger {
 	if l.isTrue && glogger.GetLevel() >= LvDEBUG {
-		if wl, ok := glogger.(logger.WithLogger); ok {
+		if wl, ok := glogger.(logger.With); ok {
 			wl.LogWith(LvDEBUG, 1, l.bytes(), format, args...)
 		} else {
 			glogger.Debug(1, l.formatMessage(format, args...))
@@ -196,7 +196,7 @@ func (l *contextLogger) Debug(format string, args ...interface{}) ContextLogger 
 
 func (l *contextLogger) Info(format string, args ...interface{}) ContextLogger {
 	if l.isTrue && glogger.GetLevel() >= LvINFO {
-		if wl, ok := glogger.(logger.WithLogger); ok {
+		if wl, ok := glogger.(logger.With); ok {
 			wl.LogWith(LvINFO, 1, l.bytes(), format, args...)
 		} else {
 			glogger.Info(1, l.formatMessage(format, args...))
@@ -207,7 +207,7 @@ func (l *contextLogger) Info(format string, args ...interface{}) ContextLogger {
 
 func (l *contextLogger) Warn(format string, args ...interface{}) ContextLogger {
 	if l.isTrue && glogger.GetLevel() >= LvWARN {
-		if wl, ok := glogger.(logger.WithLogger); ok {
+		if wl, ok := glogger.(logger.With); ok {
 			wl.LogWith(LvWARN, 1, l.bytes(), format, args...)
 		} else {
 			glogger.Warn(1, l.formatMessage(format, args...))
@@ -218,7 +218,7 @@ func (l *contextLogger) Warn(format string, args ...interface{}) ContextLogger {
 
 func (l *contextLogger) Error(format string, args ...interface{}) ContextLogger {
 	if l.isTrue && glogger.GetLevel() >= LvERROR {
-		if wl, ok := glogger.(logger.WithLogger); ok {
+		if wl, ok := glogger.(logger.With); ok {
 			wl.LogWith(LvERROR, 1, l.bytes(), format, args...)
 		} else {
 			glogger.Error(1, l.formatMessage(format, args...))
@@ -229,7 +229,7 @@ func (l *contextLogger) Error(format string, args ...interface{}) ContextLogger 
 
 func (l *contextLogger) Fatal(format string, args ...interface{}) ContextLogger {
 	if l.isTrue {
-		if wl, ok := glogger.(logger.WithLogger); ok {
+		if wl, ok := glogger.(logger.With); ok {
 			wl.LogWith(LvFATAL, 1, l.bytes(), format, args...)
 		} else {
 			glogger.Fatal(1, l.formatMessage(format, args...))
