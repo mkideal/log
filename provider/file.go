@@ -23,19 +23,31 @@ var (
 
 // FileOpts represents options object of file provider
 type FileOpts struct {
-	Dir       string `json:"dir"`       // log directory(default: .)
-	Filename  string `json:"filename"`  // log filename(default: <appName>.log)
-	NoSymlink bool   `json:"nosymlink"` // doesn't create symlink to latest log file(default: false)
-	MaxSize   int    `json:"maxsize"`   // max bytes number of every log file(default: 64M)
+	Dir         string `json:"dir"`          // log directory(default: .)
+	Filename    string `json:"filename"`     // log filename(default: <appName>.log)
+	NoSymlink   bool   `json:"nosymlink"`    // doesn't create symlink to latest log file(default: false)
+	MaxSize     int    `json:"maxsize"`      // max bytes number of every log file(default: 64M)
+	DailyAppend bool   `json:"daily_append"` // append to existed file instead of creating a new file(default: true)
 }
 
 // NewFileOpts ...
 func NewFileOpts() FileOpts {
-	_, appName := filepath.Split(os.Args[0])
-	return FileOpts{
-		Dir:      ".",
-		Filename: appName + ".log",
-		MaxSize:  1 << 26, // 64M
+	opts := FileOpts{}
+	opts.setDefaults()
+	opts.DailyAppend = true
+	return opts
+}
+
+func (opts *FileOpts) setDefaults() {
+	if opts.Dir == "" {
+		opts.Dir = "."
+	}
+	if opts.Filename == "" {
+		_, appName := filepath.Split(os.Args[0])
+		opts.Filename = appName + ".log"
+	}
+	if opts.MaxSize == 0 {
+		opts.MaxSize = 1 << 26 // 64M
 	}
 }
 
@@ -57,6 +69,7 @@ type File struct {
 func NewFile(opts string) logger.Provider {
 	config := NewFileOpts()
 	logger.UnmarshalOpts(opts, &config)
+	config.setDefaults()
 	return newFile(config)
 }
 
@@ -139,7 +152,7 @@ func (p *File) rotate(now time.Time) error {
 
 	p.writer = bufio.NewWriterSize(p.file, 1<<14) // 16k
 	var buf bytes.Buffer
-	fmt.Fprintf(&buf, "File created at: %s\n", now.Format("2006/01/02 15:04:05"))
+	fmt.Fprintf(&buf, "File opened at: %s\n", now.Format("2006/01/02 15:04:05"))
 	fmt.Fprintf(&buf, "Built with %s %s for %s/%s\n", runtime.Compiler, runtime.Version(), runtime.GOOS, runtime.GOARCH)
 	n, err := p.file.Write(buf.Bytes())
 	p.currentSize += n
@@ -150,11 +163,31 @@ func (p *File) rotate(now time.Time) error {
 
 func (p *File) create() (*os.File, error) {
 	p.onceCreateLogDir.Do(p.createDir)
+
+	// make filename
 	y, m, d := p.createdTime.Date()
-	H, M, _ := p.createdTime.Clock()
-	name := fmt.Sprintf("%s.%04d%02d%02d-%02d%02d.%06d.%03d", p.config.Filename, y, m, d, H, M, pid, p.fileIndex)
-	fullname := filepath.Join(p.config.Dir, name)
-	f, err := os.Create(fullname)
+	var name string
+	if p.config.DailyAppend {
+		name = fmt.Sprintf("%s.%04d%02d%02d", p.config.Filename, y, m, d)
+	} else {
+		H, M, _ := p.createdTime.Clock()
+		name = fmt.Sprintf("%s.%04d%02d%02d-%02d%02d.%06d", p.config.Filename, y, m, d, H, M, pid)
+	}
+	if p.fileIndex > 0 {
+		name = fmt.Sprintf("%s.%03d", name, p.fileIndex)
+	}
+
+	// create file
+	var (
+		fullname = filepath.Join(p.config.Dir, name)
+		f        *os.File
+		err      error
+	)
+	if p.config.DailyAppend {
+		f, err = os.OpenFile(fullname, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	} else {
+		f, err = os.OpenFile(fullname, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
+	}
 	if err == nil && !p.config.NoSymlink {
 		symlink := filepath.Join(p.config.Dir, p.config.Filename)
 		os.Remove(symlink)
