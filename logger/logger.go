@@ -54,7 +54,7 @@ type Handler interface {
 	Handle(entry Entry) error
 }
 
-// HookableLogger is a logger which can hook handles
+// HookableLogger is a logger which can hook handlers
 type HookableLogger interface {
 	Logger
 	Hook(Handler)

@@ -2,6 +2,7 @@ LOG
 ===
 [![License](http://img.shields.io/badge/license-mit-blue.svg?style=flat-square)](https://raw.githubusercontent.com/mkideal/log/master/LICENSE)
 [![Go Report Card](https://goreportcard.com/badge/github.com/mkideal/log)](https://goreportcard.com/report/github.com/mkideal/log)
+[![Travis branch](https://img.shields.io/travis/mkideal/log/master.svg)](https://travis-ci.org/mkideal/log)
 [![Coverage Status](https://coveralls.io/repos/github/mkideal/log/badge.svg?branch=master)](https://coveralls.io/github/mkideal/log?branch=master)
 [![GoDoc](https://godoc.org/github.com/mkideal/log?status.svg)](https://godoc.org/github.com/mkideal/log)
 
@@ -75,15 +76,11 @@ Now, current directory should have a subdirectory `log`
 
 	.
 	├── log
-	│   ├── app.log -> app.log.20160814-1449.028439.000
-	│   └── app.log.20160814-1449.028439.000
+	│   ├── app.log -> app.log.20160814
+	│   └── app.log.20160814
 	└── main.go
 
-The log file is `./log/app.log.20160814-1449.028439.000`, and `./log/app.log` link to it.
-
-* `20160814-1449` represents datetime `2016/08/14 14:49:00`
-* `028439` is the pid
-* `000` is a sequence number
+The log file is `./log/app.log.20160814`, and `./log/app.log` link to it.
 
 NOTE: You can remove the line `defer log.Uninit(log.InitFile("./log/app.log"))`. In this case, the log package use standard log package
 
@@ -291,9 +288,11 @@ func NewMixProvider(first logger.Provider, others ...logger.Provider) logger.Pro
 `Logger` interface defined in log/logger/logger.go:
 
 ```go
+// Logger is the top-level object of log package
 type Logger interface {
 	Run()
 	Quit()
+	NoHeader()
 	GetLevel() Level
 	SetLevel(level Level)
 	Trace(calldepth int, format string, args ...interface{})
@@ -302,6 +301,26 @@ type Logger interface {
 	Warn(calldepth int, format string, args ...interface{})
 	Error(calldepth int, format string, args ...interface{})
 	Fatal(calldepth int, format string, args ...interface{})
+}
+
+// Entry represents a logging entry
+type Entry interface {
+	Level() Level
+	Timestamp() int64
+	Body() []byte
+	Desc() []byte
+	Clone() Entry
+}
+
+// Handler handle the logging entry
+type Handler interface {
+	Handle(entry Entry) error
+}
+
+// HookableLogger is a logger which can hook handlers
+type HookableLogger interface {
+	Logger
+	Hook(Handler)
 }
 ```
 
@@ -330,23 +349,31 @@ log.If(iq < 250).Info("IQ less than 250").
 ## With structured fields
 
 ```go
-func With(objs ...interface{}) *WithLogger
-func WithJSON(objs ...interface{}) *WithLogger
+func With(objs ...interface{}) ContextLogger
+func WithJSON(objs ...interface{}) ContextLogger
 ```
 
-`WithLogger` has following methods:
+`ContextLogger` defined as following:
 
 ```go
-func (*WithLogger) SetFormatter(f Formatter) *WithLogger
-func (WithLogger) Trace(format string, args ...interface{})
-func (WithLogger) Debug(format string, args ...interface{})
-func (WithLogger) Info(format string, args ...interface{})
-func (WithLogger) Warn(format string, args ...interface{})
-func (WithLogger) Error(format string, args ...interface{})
-func (WithLogger) Fatal(format string, args ...interface{})
+type Context interface {
+	With(values ...interface{}) ContextLogger
+	WithJSON(values ...interface{}) ContextLogger
+	SetFormatter(f Formatter) ContextLogger
+}
+
+type ContextLogger interface {
+	Context
+	Trace(format string, args ...interface{}) ContextLogger
+	Debug(format string, args ...interface{}) ContextLogger
+	Info(format string, args ...interface{}) ContextLogger
+	Warn(format string, args ...interface{}) ContextLogger
+	Error(format string, args ...interface{}) ContextLogger
+	Fatal(format string, args ...interface{}) ContextLogger
+}
 ```
 
-`Formatter` is an interface that used to format data in WithLogger
+`Formatter` is an interface that used to format data in ContextLogger
 
 ```go
 type Formatter interface {
