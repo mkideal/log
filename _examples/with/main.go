@@ -36,6 +36,25 @@ func main() {
 	log.With(2).With(true).Info("with called 2 times: object and object")
 	log.With(log.S{"a"}).With(true).With(false).Info("with called 3 times: S and object and object")
 
+	log.WithJSON(log.M{
+		"a": 1,
+		"b": "haha",
+		"c": true,
+		"d": struct{ a int }{1},
+	})
+
+	log.If(true).Info("printed")
+
+	log.If(true).Info("printed").
+		Else().Info("not printed")
+
+	log.If(false).Info("not printed").
+		ElseIf(true).Info("printed")
+
+	log.If(false).Info("not printed").
+		ElseIf(false).Info("not printed").
+		Else().Info("printed")
+
 	log.If(true).With("haha").Info("should be printed")
 	log.If(false).With("haha").Info("shouldn't be printed")
 }

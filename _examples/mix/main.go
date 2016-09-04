@@ -7,13 +7,14 @@ import (
 )
 
 func main() {
-	opts := fmt.Sprintf(`{
-		"tostderrlevel": %d,
+	opts1 := fmt.Sprintf(`{"tostderrlevel": %d}`, log.LvERROR)
+	opts2 := fmt.Sprintf(`{
 		"dir": "./log",
 		"filename": "app.log",
 		"nosymlink": true
-	}`, log.LvERROR)
-	p := provider.NewMixProvider(provider.NewConsole(opts), provider.NewFile(opts))
+	}`)
+
+	p := provider.NewMixProvider(provider.NewConsole(opts1), provider.NewFile(opts2))
 	defer log.Uninit(log.InitWithProvider(p))
 
 	// NOTE: The above equivalent to following:

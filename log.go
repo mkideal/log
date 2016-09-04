@@ -31,6 +31,7 @@ var glogger = logger.NewStdLogger()
 // Uninit uninits log package
 func Uninit(err error) {
 	glogger.Quit()
+	glogger = logger.NewStdLogger()
 }
 
 // InitWithLogger inits global logger with a specified logger
@@ -112,8 +113,8 @@ func InitMultiFileAndConsole(rootdir, filename string, toStderrLevel logger.Leve
 }
 
 // InitTesting inits logger for testing
-func InitTesting(t *testing.T) {
-	InitWithLogger(logger.NewTestingLogger(t))
+func InitTesting(t *testing.T) error {
+	return InitWithLogger(logger.NewTestingLogger(t))
 }
 
 func NoHeader()                                { glogger.NoHeader() }
