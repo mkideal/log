@@ -126,6 +126,14 @@ func Warn(format string, args ...interface{})  { glogger.Warn(1, format, args...
 func Error(format string, args ...interface{}) { glogger.Error(1, format, args...) }
 func Fatal(format string, args ...interface{}) { glogger.Fatal(1, format, args...) }
 
+// SetLevelFromString parses level from string and set parsed level
+// (NOTE): set level to INFO if parse fail
+func SetLevelFromString(s string) logger.Level {
+	level, _ := ParseLevel(s)
+	glogger.SetLevel(level)
+	return level
+}
+
 // If returns an `IfLogger`
 func If(ok bool) IfLogger {
 	if ok {
