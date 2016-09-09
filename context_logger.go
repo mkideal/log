@@ -23,10 +23,14 @@ func (f JSONFormatter) Format(v interface{}) []byte {
 	return b
 }
 
+type jsonStringer interface {
+	JSON() string
+}
+
 // M aliases map
 type M map[string]interface{}
 
-func (m M) String() string {
+func (m M) JSON() string {
 	b, err := json.Marshal(m)
 	if err != nil {
 		return err.Error()

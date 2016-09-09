@@ -1,5 +1,6 @@
 package log
 
+/*TODO: fix tesing logger
 import (
 	"testing"
 
@@ -10,3 +11,4 @@ import (
 func InitTesting(t *testing.T) error {
 	return InitWithLogger(logger.NewTestingLogger(t))
 }
+*/

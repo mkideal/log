@@ -65,6 +65,8 @@ func Init(providerType string, opts interface{}) error {
 	switch c := opts.(type) {
 	case string:
 		return InitWithProvider(pcreator(c))
+	case jsonStringer:
+		return InitWithProvider(pcreator(c.JSON()))
 	case fmt.Stringer:
 		return InitWithProvider(pcreator(c.String()))
 	default:
