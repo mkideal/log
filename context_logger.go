@@ -26,6 +26,14 @@ func (f JSONFormatter) Format(v interface{}) []byte {
 // M aliases map
 type M map[string]interface{}
 
+func (m M) String() string {
+	b, err := json.Marshal(m)
+	if err != nil {
+		return err.Error()
+	}
+	return string(b)
+}
+
 // S aliases slice
 type S []interface{}
 

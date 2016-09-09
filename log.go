@@ -56,12 +56,20 @@ func InitSyncWithProvider(p logger.Provider) error {
 }
 
 // Init inits global logger with providerType and opts (opts is a json string or empty)
-func Init(providerType, opts string) error {
+func Init(providerType string, opts interface{}) error {
 	pcreator := logger.Lookup(providerType)
 	if pcreator == nil {
-		return errors.New("unregistered provider type: " + providerType)
+		err := errors.New("unregistered provider type: " + providerType)
+		glogger.Error(1, "init log error: %v", err)
 	}
-	return InitWithProvider(pcreator(opts))
+	switch c := opts.(type) {
+	case string:
+		return InitWithProvider(pcreator(c))
+	case fmt.Stringer:
+		return InitWithProvider(pcreator(c.String()))
+	default:
+		return InitWithProvider(pcreator(fmt.Sprintf("%v", opts)))
+	}
 }
 
 // InitFile inits with file provider by log file fullpath

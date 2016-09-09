@@ -191,7 +191,7 @@ func (p *File) create() (*os.File, error) {
 		f, err = os.OpenFile(fullname, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 	}
 	if err == nil && !p.config.NoSymlink {
-		symlink := filepath.Join(p.config.Dir, p.config.Filename)
+		symlink := filepath.Join(p.config.Dir, p.config.Filename+p.config.Suffix)
 		os.Remove(symlink)
 		os.Symlink(name, symlink)
 	}
