@@ -28,6 +28,7 @@ type FileOpts struct {
 	NoSymlink   bool   `json:"nosymlink"`    // doesn't create symlink to latest log file(default: false)
 	MaxSize     int    `json:"maxsize"`      // max bytes number of every log file(default: 64M)
 	DailyAppend bool   `json:"daily_append"` // append to existed file instead of creating a new file(default: true)
+	Suffix      string `json:"suffix"`       // filename suffix
 }
 
 // NewFileOpts ...
@@ -176,6 +177,7 @@ func (p *File) create() (*os.File, error) {
 	if p.fileIndex > 0 {
 		name = fmt.Sprintf("%s.%03d", name, p.fileIndex)
 	}
+	name += p.config.Suffix
 
 	// create file
 	var (

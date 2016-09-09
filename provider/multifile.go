@@ -12,20 +12,23 @@ func init() {
 }
 
 type MultiFileOpts struct {
-	RootDir   string `json:"rootdir"`   // log directory(default: .)
-	ErrorDir  string `json:"errordir"`  // error subdirectory(default: error)
-	WarnDir   string `json:"warndir"`   // warn subdirectory(default: warn)
-	InfoDir   string `json:"infodir"`   // info subdirectory(default: info)
-	DebugDir  string `json:"debugdir"`  // debug subdirectory(default: debug)
-	TraceDir  string `json:"tracedir"`  // trace subdirectory(default: trace)
-	Filename  string `json:"filename"`  // log filename(default: <appName>.log)
-	NoSymlink bool   `json:"nosymlink"` // doesn't create symlink to latest log file(default: false)
-	MaxSize   int    `json:"maxsize"`   // max bytes number of every log file(default: 64M)
+	RootDir     string `json:"rootdir"`      // log directory(default: .)
+	ErrorDir    string `json:"errordir"`     // error subdirectory(default: error)
+	WarnDir     string `json:"warndir"`      // warn subdirectory(default: warn)
+	InfoDir     string `json:"infodir"`      // info subdirectory(default: info)
+	DebugDir    string `json:"debugdir"`     // debug subdirectory(default: debug)
+	TraceDir    string `json:"tracedir"`     // trace subdirectory(default: trace)
+	Filename    string `json:"filename"`     // log filename(default: <appName>.log)
+	NoSymlink   bool   `json:"nosymlink"`    // doesn't create symlink to latest log file(default: false)
+	MaxSize     int    `json:"maxsize"`      // max bytes number of every log file(default: 64M)
+	DailyAppend bool   `json:"daily_append"` // append to existed file instead of creating a new file(default: true)
+	Suffix      string `json:"suffix"`       // filename suffix
 }
 
 func NewMultiFileOpts() MultiFileOpts {
 	opts := MultiFileOpts{
-		RootDir: ".",
+		RootDir:     ".",
+		DailyAppend: true,
 	}
 	opts.setDefaults()
 	return opts
@@ -135,9 +138,11 @@ func (p *MultiFile) initForLevel(level logger.Level) error {
 
 func (p *MultiFile) configForLevel(level logger.Level) FileOpts {
 	config := FileOpts{
-		MaxSize:   p.config.MaxSize,
-		NoSymlink: p.config.NoSymlink,
-		Filename:  p.config.Filename,
+		MaxSize:     p.config.MaxSize,
+		NoSymlink:   p.config.NoSymlink,
+		Filename:    p.config.Filename,
+		DailyAppend: p.config.DailyAppend,
+		Suffix:      p.config.Suffix,
 	}
 	switch level {
 	case logger.FATAL, logger.ERROR:

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
-	"testing"
 
 	"github.com/mkideal/log/logger"
 	"github.com/mkideal/log/provider"
@@ -110,11 +109,6 @@ func InitMultiFileAndConsole(rootdir, filename string, toStderrLevel logger.Leve
 	consoleOpts := makeConsoleOpts(toStderrLevel)
 	p := provider.NewMixProvider(provider.NewMultiFile(multifileOpts), provider.NewConsole(consoleOpts))
 	return InitWithProvider(p)
-}
-
-// InitTesting inits logger for testing
-func InitTesting(t *testing.T) error {
-	return InitWithLogger(logger.NewTestingLogger(t))
 }
 
 func NoHeader()                                { glogger.NoHeader() }
