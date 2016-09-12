@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/mkideal/log/logger"
 	"github.com/mkideal/log/provider"
@@ -56,22 +57,43 @@ func InitSyncWithProvider(p logger.Provider) error {
 }
 
 // Init inits global logger with providerType and opts (opts is a json string or empty)
-func Init(providerType string, opts interface{}) error {
-	pcreator := logger.Lookup(providerType)
-	if pcreator == nil {
-		err := errors.New("unregistered provider type: " + providerType)
+func Init(providerTypes string, opts interface{}) error {
+	// splits providerTypes by '/'
+	types := strings.Split(providerTypes, "/")
+	if len(types) == 0 {
+		err := errors.New("empty providers")
 		glogger.Error(1, "init log error: %v", err)
+		return err
 	}
+	// gets opts string
+	optsString := ""
 	switch c := opts.(type) {
 	case string:
-		return InitWithProvider(pcreator(c))
+		optsString = c
 	case jsonStringer:
-		return InitWithProvider(pcreator(c.JSON()))
+		optsString = c.JSON()
 	case fmt.Stringer:
-		return InitWithProvider(pcreator(c.String()))
+		optsString = c.String()
 	default:
-		return InitWithProvider(pcreator(fmt.Sprintf("%v", opts)))
+		optsString = fmt.Sprintf("%v", opts)
 	}
+	// create providers
+	var providers []logger.Provider
+	for _, typ := range types {
+		typ = strings.TrimSpace(typ)
+		creator := logger.Lookup(typ)
+		if creator == nil {
+			err := errors.New("unregistered provider type: " + typ)
+			glogger.Error(1, "init log error: %v", err)
+			return err
+		}
+		p := creator(optsString)
+		if len(types) == 1 {
+			return InitWithProvider(p)
+		}
+		providers = append(providers, p)
+	}
+	return InitWithProvider(provider.NewMixProvider(providers[0], providers[1:]...))
 }
 
 // InitFile inits with file provider by log file fullpath
