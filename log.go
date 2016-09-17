@@ -167,6 +167,43 @@ func Warn(format string, args ...interface{})  { glogger.Warn(1, format, args...
 func Error(format string, args ...interface{}) { glogger.Error(1, format, args...) }
 func Fatal(format string, args ...interface{}) { glogger.Fatal(1, format, args...) }
 
+func Printf(calldepth int, level logger.Level, format string, args ...interface{}) {
+	switch level {
+	case LvTRACE:
+		glogger.Trace(calldepth, format, args...)
+	case LvDEBUG:
+		glogger.Debug(calldepth, format, args...)
+	case LvINFO:
+		glogger.Info(calldepth, format, args...)
+	case LvWARN:
+		glogger.Warn(calldepth, format, args...)
+	case LvERROR:
+		glogger.Error(calldepth, format, args...)
+	case LvFATAL:
+		glogger.Fatal(calldepth, format, args...)
+	}
+}
+
+func Print(calldepth int, level logger.Level, args ...interface{}) {
+	if level <= glogger.GetLevel() {
+		msg := fmt.Sprint(args...)
+		switch level {
+		case LvTRACE:
+			glogger.Trace(calldepth, msg)
+		case LvDEBUG:
+			glogger.Debug(calldepth, msg)
+		case LvINFO:
+			glogger.Info(calldepth, msg)
+		case LvWARN:
+			glogger.Warn(calldepth, msg)
+		case LvERROR:
+			glogger.Error(calldepth, msg)
+		case LvFATAL:
+			glogger.Fatal(calldepth, msg)
+		}
+	}
+}
+
 // HTTPHandlerGetLevel returns a http handler for getting log level
 func HTTPHandlerGetLevel() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

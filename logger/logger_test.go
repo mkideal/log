@@ -161,3 +161,28 @@ func TestHook(t *testing.T) {
 	assert.Equal(t, desc, string(hanlder.desc))
 	assert.Equal(t, INFO, hanlder.level)
 }
+
+func TestForm2JSON(t *testing.T) {
+	for i, tc := range []struct {
+		form     string
+		json     string
+		hasError bool
+	}{
+		{"", `{}`, false},
+		{"a=1", `{"a":1}`, false},
+		{"a=true", `{"a":true}`, false},
+		{"a=false", `{"a":false}`, false},
+		{"a=strings", `{"a":"strings"}`, false},
+	} {
+		if got, err := form2JSON(tc.form); err != nil {
+			if tc.hasError {
+				continue
+			}
+			t.Errorf("%dth, occurs error: %v", i, err)
+		} else if tc.hasError {
+			t.Errorf("%dth, want error, but got nil", i)
+		} else if got != tc.json {
+			t.Errorf("%dth fail: want `%s', got `%s'", i, tc.json, got)
+		}
+	}
+}
