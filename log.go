@@ -3,7 +3,10 @@ package log
 import (
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"path/filepath"
+	"strings"
 
 	"github.com/mkideal/log/logger"
 	"github.com/mkideal/log/provider"
@@ -27,7 +30,7 @@ const (
 // ParseLevel parses log level from string
 func ParseLevel(s string) (logger.Level, bool) { return logger.ParseLevel(s) }
 
-// MustParseLevel similars to ParseLevel, but panic if parse fail
+// MustParseLevel is similar to ParseLevel, but panics if parse fail
 func MustParseLevel(s string) logger.Level { return logger.MustParseLevel(s) }
 
 // global logger
@@ -36,7 +39,6 @@ var glogger = logger.NewStdLogger()
 // Uninit uninits log package
 func Uninit(err error) {
 	glogger.Quit()
-	glogger = logger.NewStdLogger()
 }
 
 // InitWithLogger inits global logger with a specified logger
@@ -62,22 +64,50 @@ func InitSyncWithProvider(p logger.Provider) error {
 }
 
 // Init inits global logger with providerType and opts (opts is a json string or empty)
-func Init(providerType string, opts interface{}) error {
-	pcreator := logger.Lookup(providerType)
-	if pcreator == nil {
-		err := errors.New("unregistered provider type: " + providerType)
+func Init(providerTypes string, opts interface{}) error {
+	// splits providerTypes by '/'
+	types := strings.Split(providerTypes, "/")
+	if len(types) == 0 || len(providerTypes) == 0 {
+		err := errors.New("empty providers")
 		glogger.Error(1, "init log error: %v", err)
+		return err
 	}
+	// gets opts string
+	optsString := ""
 	switch c := opts.(type) {
 	case string:
-		return InitWithProvider(pcreator(c))
+		optsString = c
 	case jsonStringer:
-		return InitWithProvider(pcreator(c.JSON()))
+		optsString = c.JSON()
 	case fmt.Stringer:
-		return InitWithProvider(pcreator(c.String()))
+		optsString = c.String()
 	default:
-		return InitWithProvider(pcreator(fmt.Sprintf("%v", opts)))
+		optsString = fmt.Sprintf("%v", opts)
 	}
+
+	// clean repeated provider type
+	usedTypes := map[string]bool{}
+	for _, typ := range types {
+		typ = strings.TrimSpace(typ)
+		usedTypes[typ] = true
+	}
+
+	// creates providers
+	var providers []logger.Provider
+	for typ := range usedTypes {
+		creator := logger.Lookup(typ)
+		if creator == nil {
+			err := errors.New("unregistered provider type: " + typ)
+			glogger.Error(1, "init log error: %v", err)
+			return err
+		}
+		p := creator(optsString)
+		if len(types) == 1 {
+			return InitWithProvider(p)
+		}
+		providers = append(providers, p)
+	}
+	return InitWithProvider(provider.NewMixProvider(providers[0], providers[1:]...))
 }
 
 // InitFile inits with file provider by log file fullpath
@@ -136,6 +166,39 @@ func Info(format string, args ...interface{})  { glogger.Info(1, format, args...
 func Warn(format string, args ...interface{})  { glogger.Warn(1, format, args...) }
 func Error(format string, args ...interface{}) { glogger.Error(1, format, args...) }
 func Fatal(format string, args ...interface{}) { glogger.Fatal(1, format, args...) }
+
+// HTTPHandlerGetLevel returns a http handler for getting log level
+func HTTPHandlerGetLevel() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, GetLevel().String())
+	})
+}
+
+// HTTPHandlerSetLevel sets new log level and returns old log level
+// Returns status code `StatusBadRequest` if parse log level fail
+func HTTPHandlerSetLevel() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.ParseForm()
+		level := r.FormValue("level")
+		lv, ok := ParseLevel(level)
+		// invalid parameter
+		if !ok {
+			w.WriteHeader(http.StatusBadRequest)
+			io.WriteString(w, "invalid log level: "+level)
+			return
+		}
+		// not modified
+		oldLevel := GetLevel()
+		if lv == oldLevel {
+			w.WriteHeader(http.StatusNotModified)
+			io.WriteString(w, oldLevel.String())
+			return
+		}
+		// updated
+		SetLevel(lv)
+		io.WriteString(w, oldLevel.String())
+	})
+}
 
 // SetLevelFromString parses level from string and set parsed level
 // (NOTE): set level to INFO if parse fail
