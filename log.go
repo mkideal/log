@@ -18,6 +18,12 @@ const (
 	LvTRACE = logger.TRACE
 )
 
+const (
+	KB = 1024
+	MB = 1024 * KB
+	GB = 1024 * MB
+)
+
 // ParseLevel parses log level from string
 func ParseLevel(s string) (logger.Level, bool) { return logger.ParseLevel(s) }
 

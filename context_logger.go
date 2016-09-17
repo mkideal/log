@@ -9,7 +9,7 @@ import (
 	"github.com/mkideal/log/logger"
 )
 
-// Formatter format the data of context
+// Formatter formats the data of context
 type Formatter interface {
 	Format(v interface{}) []byte
 }
