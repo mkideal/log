@@ -1,18 +1,16 @@
 LOG
 ===
-[![License](http://img.shields.io/badge/license-mit-blue.svg?style=flat-square)](https://raw.githubusercontent.com/mkideal/log/master/LICENSE)
-[![Go Report Card](https://goreportcard.com/badge/github.com/mkideal/log)](https://goreportcard.com/report/github.com/mkideal/log)
-[![Travis branch](https://img.shields.io/travis/mkideal/log/master.svg)](https://travis-ci.org/mkideal/log)
-[![Coverage Status](https://coveralls.io/repos/github/mkideal/log/badge.svg?branch=master)](https://coveralls.io/github/mkideal/log?branch=master)
-[![GoDoc](https://godoc.org/github.com/mkideal/log?status.svg)](https://godoc.org/github.com/mkideal/log)
+
+[![License](http://img.shields.io/badge/license-mit-blue.svg?style=flat-square)](https://raw.githubusercontent.com/mkideal/log/master/LICENSE) [![Go Report Card](https://goreportcard.com/badge/github.com/mkideal/log)](https://goreportcard.com/report/github.com/mkideal/log) [![Travis branch](https://img.shields.io/travis/mkideal/log/master.svg)](https://travis-ci.org/mkideal/log) [![Coverage Status](https://coveralls.io/repos/github/mkideal/log/badge.svg?branch=master)](https://coveralls.io/github/mkideal/log?branch=master) [![GoDoc](https://godoc.org/github.com/mkideal/log?status.svg)](https://godoc.org/github.com/mkideal/log)
 
 `log` package inspired from [golang/glog](https://github.com/golang/glog). We have following key features:
 
-* **lightweight** - `log` package very lightweight, and so easy to use.
-* **highly customizable** - You can customize `Provider`,`Logger`.
-* **fast** - Write logs to a buffer queue.
+-	**lightweight** - `log` package very lightweight, and so easy to use.
+-	**highly customizable** - You can customize `Provider`,`Logger`.
+-	**fast** - Write logs to a buffer queue.
 
-## Getting started
+Getting started
+---------------
 
 ```go
 package main
@@ -52,8 +50,8 @@ func main() {
 	log.With(1).Info("With an int field")
 	log.With(true).Info("With a bool field")
 	log.With(1, "2", false).Info("With 3 fields")
-	log.With(log.M{"a":1}).Info("With a map")
-	log.WithJSON(log.M{"a":1}).Info("With a map and using JSONFormatter")
+	log.With(log.M{"a": 1}).Info("With a map")
+	log.WithJSON(log.M{"a": 1}).Info("With a map and using JSONFormatter")
 
 	// don't print message header
 	log.NoHeader()
@@ -74,17 +72,20 @@ go run main.go
 
 Now, current directory should have a subdirectory `log`
 
-	.
-	├── log
-	│   ├── app.log -> app.log.20160814
-	│   └── app.log.20160814
-	└── main.go
+```
+.
+├── log
+│   ├── app.log -> app.log.20160814
+│   └── app.log.20160814
+└── main.go
+```
 
 The log file is `./log/app.log.20160814`, and `./log/app.log` link to it.
 
 NOTE: You can remove the line `defer log.Uninit(log.InitFile("./log/app.log"))`. In this case, the log package use standard log package
 
-## Log level
+Log level
+---------
 
 There are 6 log levels: `Fatal`,`Error`,`Warn`,`Info`,`Debug`,`Trace`
 
@@ -92,19 +93,19 @@ Default log level is `Info` if log level isn't specified.
 
 `Logger` define methods `GetLevel() Level` and `SetLevel(Level)`.
 
-## Init/Uninit
-
+Init/Uninit
+-----------
 
 You should call one of the following `Init` functions before writing logs:
 
-* **InitWithLogger**(*logger.Logger*) - init log with a `Logger`
-* **InitWithProvider**(*logger.Provider*) - init log with a `Provider`
-* **Init**(*providerType, opts string*) - init log by specified provider type and opts
-* **InitFile**(*fullpath string*) - wrap the `Init` for `file` provider
-* **InitConsole**(*toStderrLevel logger.Level*) - wrap the `Init` for `consle` provider
-* **InitFileAndConsole**(*fullpath string, toStderrLevel logger.Level*) - combine `file` and `console` providers
-* **InitMultiFile**(*rootdir, filename string*) - wrap the `Init` for `multifile` provider
-* **InitMultiFileAndConsole**(*rootdir, filename string*) - combine `multifile` and `console` providers
+-	**InitWithLogger**\(*logger.Logger*) - init log with a `Logger`
+-	**InitWithProvider**\(*logger.Provider*) - init log with a `Provider`
+-	**Init**\(*providerType, opts string*) - init log by specified provider type and opts
+-	**InitFile**\(*fullpath string*) - wrap the `Init` for `file` provider
+-	**InitConsole**\(*toStderrLevel logger.Level*) - wrap the `Init` for `consle` provider
+-	**InitFileAndConsole**\(*fullpath string, toStderrLevel logger.Level*) - combine `file` and `console` providers
+-	**InitMultiFile**\(*rootdir, filename string*) - wrap the `Init` for `multifile` provider
+-	**InitMultiFileAndConsole**\(*rootdir, filename string*) - combine `multifile` and `console` providers
 
 And call the `Uninit` before exit program.
 
@@ -176,14 +177,15 @@ func main() {
 }
 ```
 
-## Print functions
+Print functions
+---------------
 
-* **Fatal**(*format string, args ...interface{}*) - Print and exit program with code 1
-* **Error**(*format string, args ...interface{}*) - Print if level >= ERROR
-* **Warn**(*format string, args ...interface{}*) - Print if level >= WARN
-* **Info**(*format string, args ...interface{}*) - Print if level >= INFO
-* **Debug**(*format string, args ...interface{}*) - Print if level >= DEBUG
-* **Trace**(*format string, args ...interface{}*) - Print if level >= TRACE
+-	**Fatal**\(*format string, args ...interface{}*) - Print and exit program with code 1
+-	**Error**\(*format string, args ...interface{}*) - Print if level >= ERROR
+-	**Warn**\(*format string, args ...interface{}*) - Print if level >= WARN
+-	**Info**\(*format string, args ...interface{}*) - Print if level >= INFO
+-	**Debug**\(*format string, args ...interface{}*) - Print if level >= DEBUG
+-	**Trace**\(*format string, args ...interface{}*) - Print if level >= TRACE
 
 Examples:
 
@@ -196,7 +198,8 @@ log.Error("hello %s", "ERROR")
 log.Fatal("bye bye %s", "FATAL")
 ```
 
-## Provider
+Provider
+--------
 
 `Provider` interface defined in `log/logger/provider.go`:
 
@@ -209,7 +212,7 @@ type Provider interface {
 
 You can implement your `Provider`, then use `InitWithProvider`(see example [provider](https://github.com/mkideal/log/tree/master/_examples/provider/main.go)).
 
-Or register your provider first, and use `Init`(see example [register_provider](https://github.com/mkideal/log/tree/master/_examples/register_provider/main.go))
+Or register your provider first, and use `Init`(see example [register_provider](https://github.com/mkideal/log/tree/master/_examples/register_provider/main.go)\)
 
 Here are 4 builtin providers: `console`,`file`,`multifile`,`mix`
 
@@ -283,7 +286,8 @@ type MultiFileOpts struct {
 func NewMixProvider(first logger.Provider, others ...logger.Provider) logger.Provider
 ```
 
-## Logger
+Logger
+------
 
 `Logger` interface defined in log/logger/logger.go:
 
@@ -326,7 +330,8 @@ type HookableLogger interface {
 
 You can use your `Logger` by calling `InitWithLogger`.
 
-## If(ElseIf,Else)
+If(ElseIf,Else)
+---------------
 
 `log.If(bool)` returns a bool value which type is `IfLogger`. `IfLogger` implements `Trace`,`Debug`,`Info`,`Warn`,`Error`,`Fatal` methods, and all methods return the IfLogger.
 
@@ -346,7 +351,8 @@ log.If(iq < 250).Info("IQ less than 250").
 	Else().Info("IQ equal to 250")
 ```
 
-## With structured fields
+With structured fields
+----------------------
 
 ```go
 func With(objs ...interface{}) ContextLogger
