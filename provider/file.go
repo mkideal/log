@@ -52,7 +52,7 @@ func (opts *FileOpts) setDefaults() {
 	}
 }
 
-// File is provider that writes logs to file
+// File is a provider which writes logs to file
 type File struct {
 	config           FileOpts
 	currentSize      int

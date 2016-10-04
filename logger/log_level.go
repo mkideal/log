@@ -38,6 +38,8 @@ func (level Level) String() string {
 	return "INVALID"
 }
 
+func (level Level) MoreVerboseThan(other Level) bool { return level > other }
+
 func (level *Level) Decode(s string) error {
 	lv, ok := ParseLevel(s)
 	*level = lv

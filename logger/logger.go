@@ -10,6 +10,11 @@ import (
 	"time"
 )
 
+const (
+	maxWaitTimeForVerboseLevel   = 10 * time.Second // trace, debug
+	maxWaitTimeForImportantLevel = time.Minute      // info, warn, error, fatal
+)
+
 // Logger is the top-level object of log package
 type Logger interface {
 	// Run startup logger
@@ -80,7 +85,7 @@ func Stack(calldepth int) []byte {
 	return e[startIndex:nbytes]
 }
 
-// logger implements interface HookableLogger and With
+// logger implements interfaces HookableLogger and With
 type logger struct {
 	level    Level
 	provider Provider
@@ -110,7 +115,7 @@ func NewSync(provider Provider) HookableLogger {
 	return newLogger(provider, false)
 }
 
-// (NOTE): NewLoggerForTest creates a logger for testing
+// (NOTE): NewLoggerForTest creates a logger for testing only
 func NewLoggerForTest(provider Provider, async bool, with bool) HookableLogger {
 	l := newLogger(provider, async)
 	if with {
@@ -295,8 +300,15 @@ func (l *logger) output(level Level, calldepth int, data []byte, format string, 
 		return
 	}
 	e.level = level
-	if l.async {
-		l.writeQueue <- e
+	maxWaitTime := maxWaitTimeForImportantLevel
+	if e.level.MoreVerboseThan(INFO) {
+		maxWaitTime = maxWaitTimeForVerboseLevel
+	}
+	if l.async && atomic.LoadInt32(&l.running) != 0 {
+		select {
+		case l.writeQueue <- e:
+		case <-time.After(maxWaitTime):
+		}
 	} else {
 		l.writeLocker.Lock()
 		l.writeBuffer(e)

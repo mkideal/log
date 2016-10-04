@@ -102,7 +102,7 @@ func Init(providerTypes string, opts interface{}) error {
 			return err
 		}
 		p := creator(optsString)
-		if len(types) == 1 {
+		if len(usedTypes) == 1 {
 			return InitWithProvider(p)
 		}
 		providers = append(providers, p)
