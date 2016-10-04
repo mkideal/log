@@ -24,11 +24,12 @@ var (
 // FileOpts represents options object of file provider
 type FileOpts struct {
 	Dir         string `json:"dir"`          // log directory(default: .)
-	Filename    string `json:"filename"`     // log filename(default: <appName>.log)
+	Filename    string `json:"filename"`     // log filename(default: )
 	NoSymlink   bool   `json:"nosymlink"`    // doesn't create symlink to latest log file(default: false)
 	MaxSize     int    `json:"maxsize"`      // max bytes number of every log file(default: 64M)
 	DailyAppend bool   `json:"daily_append"` // append to existed file instead of creating a new file(default: true)
 	Suffix      string `json:"suffix"`       // filename suffix
+	DateFormat  string `json:"date_format"`  // date format string(default: %04d%02d%02d)
 }
 
 // NewFileOpts ...
@@ -43,12 +44,11 @@ func (opts *FileOpts) setDefaults() {
 	if opts.Dir == "" {
 		opts.Dir = "."
 	}
-	if opts.Filename == "" {
-		_, appName := filepath.Split(os.Args[0])
-		opts.Filename = appName + ".log"
-	}
 	if opts.MaxSize == 0 {
 		opts.MaxSize = 1 << 26 // 64M
+	}
+	if opts.DateFormat == "" {
+		opts.DateFormat = "%04d%02d%02d"
 	}
 }
 
@@ -166,13 +166,20 @@ func (p *File) create() (*os.File, error) {
 	p.onceCreateLogDir.Do(p.createDir)
 
 	// make filename
-	y, m, d := p.createdTime.Date()
-	var name string
+	var (
+		y, m, d = p.createdTime.Date()
+		name    string
+		prefix  = p.config.Filename
+		date    = fmt.Sprintf(p.config.DateFormat, y, m, d)
+	)
+	if p.config.Filename != "" {
+		prefix += "."
+	}
 	if p.config.DailyAppend {
-		name = fmt.Sprintf("%s.%04d%02d%02d", p.config.Filename, y, m, d)
+		name = fmt.Sprintf("%s%s", prefix, date)
 	} else {
 		H, M, _ := p.createdTime.Clock()
-		name = fmt.Sprintf("%s.%04d%02d%02d-%02d%02d.%06d", p.config.Filename, y, m, d, H, M, pid)
+		name = fmt.Sprintf("%s%s-%02d%02d.%06d", prefix, date, H, M, pid)
 	}
 	if p.fileIndex > 0 {
 		name = fmt.Sprintf("%s.%03d", name, p.fileIndex)
@@ -191,7 +198,11 @@ func (p *File) create() (*os.File, error) {
 		f, err = os.OpenFile(fullname, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 	}
 	if err == nil && !p.config.NoSymlink {
-		symlink := filepath.Join(p.config.Dir, p.config.Filename+p.config.Suffix)
+		tmp := p.config.Filename
+		if tmp == "" {
+			tmp = filepath.Base(os.Args[0])
+		}
+		symlink := filepath.Join(p.config.Dir, tmp+p.config.Suffix)
 		os.Remove(symlink)
 		os.Symlink(name, symlink)
 	}

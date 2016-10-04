@@ -1,7 +1,6 @@
 package provider
 
 import (
-	"os"
 	"path/filepath"
 
 	"github.com/mkideal/log/logger"
@@ -23,6 +22,7 @@ type MultiFileOpts struct {
 	MaxSize     int    `json:"maxsize"`      // max bytes number of every log file(default: 64M)
 	DailyAppend bool   `json:"daily_append"` // append to existed file instead of creating a new file(default: true)
 	Suffix      string `json:"suffix"`       // filename suffix
+	DateFormat  string `json:"date_format"`  // date format string(default: %04d%02d%02d)
 }
 
 func NewMultiFileOpts() MultiFileOpts {
@@ -56,9 +56,8 @@ func (opts *MultiFileOpts) setDefaults() {
 	if opts.MaxSize <= 0 {
 		opts.MaxSize = 1 << 26
 	}
-	if opts.Filename == "" {
-		_, appName := filepath.Split(os.Args[0])
-		opts.Filename = appName + ".log"
+	if opts.DateFormat == "" {
+		opts.DateFormat = "%04d%02d%02d"
 	}
 }
 
@@ -143,6 +142,7 @@ func (p *MultiFile) configForLevel(level logger.Level) FileOpts {
 		Filename:    p.config.Filename,
 		DailyAppend: p.config.DailyAppend,
 		Suffix:      p.config.Suffix,
+		DateFormat:  p.config.DateFormat,
 	}
 	switch level {
 	case logger.FATAL, logger.ERROR:
