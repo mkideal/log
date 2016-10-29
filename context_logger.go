@@ -180,7 +180,11 @@ func (l *contextLogger) formatMessage(format string, args ...interface{}) string
 	if buf.Len() > 0 && len(format) > 0 {
 		buf.WriteString(" | ")
 	}
-	fmt.Fprintf(buf, format, args...)
+	if len(args) == 0 {
+		fmt.Fprint(buf, format)
+	} else {
+		fmt.Fprintf(buf, format, args...)
+	}
 	return buf.String()
 }
 

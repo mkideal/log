@@ -25,10 +25,18 @@ func (l *stdLogger) SetLevel(level Level) { atomic.StoreInt32((*int32)(l), int32
 
 func (l *stdLogger) output(calldepth int, level Level, format string, args ...interface{}) {
 	if level != FATAL {
-		stdlog.Output(calldepth+3, fmt.Sprintf(format, args...))
+		if len(args) == 0 {
+			stdlog.Output(calldepth+3, fmt.Sprint(format))
+		} else {
+			stdlog.Output(calldepth+3, fmt.Sprintf(format, args...))
+		}
 	} else {
 		buf := new(bytes.Buffer)
-		fmt.Fprintf(buf, format, args...)
+		if len(args) == 0 {
+			fmt.Fprint(buf, format)
+		} else {
+			fmt.Fprintf(buf, format, args...)
+		}
 		if buf.Len() == 0 || buf.Bytes()[buf.Len()-1] != '\n' {
 			buf.WriteByte('\n')
 		}

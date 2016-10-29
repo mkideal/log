@@ -285,7 +285,11 @@ func (l *logger) output(level Level, calldepth int, data []byte, format string, 
 		}
 	}
 	e.descBegin = e.Len()
-	fmt.Fprintf(e, format, args...)
+	if len(args) == 0 {
+		fmt.Fprint(e, format)
+	} else {
+		fmt.Fprintf(e, format, args...)
+	}
 	e.descEnd = e.Len()
 	if e.Len() > 0 && e.Bytes()[e.Len()-1] != '\n' {
 		e.WriteByte('\n')
