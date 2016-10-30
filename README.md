@@ -132,8 +132,13 @@ func main() {
 func main() {
 	defer log.Uninit(log.Init("file", `{"dir":"./log","filename":"app.log"}`))
 	// OR
-	// defer log.Uninit(log.Init("file", `{"dir":"./log","filename":"app.log","maxsize":67108864}`))
-	// NOTE: 67108864 = 1 << 26 = 64M
+	//	defer log.Uninit(log.Init("file", `{"dir":"./log","filename":"app.log","maxsize":67108864}`))
+	//	(NOTE: 67108864 = 1 << 26 = 64M)
+	// OR
+	//	defer log.Uninit(log.Init("console/file", log.M{
+	//		"dir": "./log",
+	//		"filename": "app.log",
+	//	}))
 }
 ```
 
@@ -338,8 +343,8 @@ If(ElseIf,Else)
 `IfLogger` has methods `ElseIf` and `Else`.
 
 ```go
-func (il IfLogger) Else() IfLogger          { return !il }
-func (il IfLogger) ElseIf(ok bool) IfLogger { return IfLogger(ok) }
+func (il IfLogger) Else() IfLogger
+func (il IfLogger) ElseIf(ok bool)
 ```
 
 Here is an example demonstrates how to use `IfLogger`:
