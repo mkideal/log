@@ -128,6 +128,10 @@ func InitConsole(toStderrLevel logger.Level) error {
 	return Init("console", makeConsoleOpts(toStderrLevel))
 }
 
+func InitColoredConsole(toStderrLevel logger.Level) error {
+	return Init("colored_console", makeConsoleOpts(toStderrLevel))
+}
+
 func makeConsoleOpts(toStderrLevel logger.Level) string {
 	return fmt.Sprintf(`{"tostderrlevel":%d}`, toStderrLevel)
 }
