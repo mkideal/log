@@ -2,6 +2,7 @@ package logger
 
 import (
 	"errors"
+	"strconv"
 	"strings"
 )
 
@@ -36,6 +37,28 @@ func (level Level) String() string {
 		return "TRACE"
 	}
 	return "INVALID"
+}
+
+// MarshalJSON implements json.Marshaler
+func (level Level) MarshalJSON() ([]byte, error) {
+	return []byte(`"` + level.String() + `"`), nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler
+func (level *Level) UnmarshalJSON(data []byte) error {
+	var (
+		s   string
+		err error
+	)
+	if len(data) >= 2 {
+		s, err = strconv.Unquote(string(data))
+		if err != nil {
+			return err
+		}
+	} else {
+		s = string(data)
+	}
+	return level.Decode(s)
 }
 
 func (level Level) MoreVerboseThan(other Level) bool { return level > other }
