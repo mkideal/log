@@ -50,6 +50,9 @@ func (opts *FileOpts) setDefaults() {
 	if opts.DateFormat == "" {
 		opts.DateFormat = "%04d%02d%02d"
 	}
+	if opts.Suffix == "" {
+		opts.Suffix = ".log"
+	}
 }
 
 // File is a provider which writes logs to file
