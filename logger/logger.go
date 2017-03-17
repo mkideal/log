@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	maxWaitTimeForVerboseLevel   = 10 * time.Second // trace, debug
-	maxWaitTimeForImportantLevel = time.Minute      // info, warn, error, fatal
+	maxWaitTimeForVerboseLevel   = 100 * time.Millisecond // trace, debug
+	maxWaitTimeForImportantLevel = 3 * time.Second        // info, warn, error, fatal
 )
 
 // Logger is the top-level object of log package

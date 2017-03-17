@@ -6,8 +6,8 @@ import (
 )
 
 var (
-	errWriterIsNil = errors.New("writer is nil")
-	errOutOfRange  = errors.New("out of range")
+	errNilWriter  = errors.New("nil writer")
+	errOutOfRange = errors.New("out of range")
 )
 
 type errorList struct {

@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -103,7 +104,7 @@ func (p *File) Write(level logger.Level, headerLength int, data []byte) error {
 	defer p.mu.Unlock()
 
 	if p.writer == nil {
-		return errWriterIsNil
+		return errNilWriter
 	}
 	now := time.Now()
 	if !isSameDay(now, p.createdTime) {
@@ -187,7 +188,9 @@ func (p *File) create() (*os.File, error) {
 	if p.fileIndex > 0 {
 		name = fmt.Sprintf("%s.%03d", name, p.fileIndex)
 	}
-	name += p.config.Suffix
+	if !strings.HasSuffix(name, p.config.Suffix) {
+		name += p.config.Suffix
+	}
 
 	// create file
 	var (
