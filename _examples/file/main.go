@@ -6,7 +6,7 @@ import (
 
 func main() {
 	// Init and defer Uninit
-	defer log.Uninit(log.InitFile("./log/app.log"))
+	defer log.Uninit(log.InitFile("./log/app"))
 
 	// Default log level is log.LvINFO, you can change the level as following:
 	//
