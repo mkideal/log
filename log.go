@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/mkideal/log/logger"
@@ -30,7 +31,7 @@ const (
 // ParseLevel parses log level from string
 func ParseLevel(s string) (logger.Level, bool) { return logger.ParseLevel(s) }
 
-// MustParseLevel is similar to ParseLevel, but panics if parse fail
+// MustParseLevel is similar to ParseLevel, but panics if parse failed
 func MustParseLevel(s string) logger.Level { return logger.MustParseLevel(s) }
 
 // global logger
@@ -120,7 +121,7 @@ func makeFileOpts(fullpath string) string {
 	if dir == "" {
 		dir = "."
 	}
-	return fmt.Sprintf(`{"dir":"%s","filename":"%s"}`, dir, filename)
+	return fmt.Sprintf(`{"dir":%s,"filename":%s}`, strconv.Quote(dir), strconv.Quote(filename))
 }
 
 // InitConsole inits with console provider by toStderrLevel
@@ -242,7 +243,7 @@ func HTTPHandlerSetLevel() http.Handler {
 }
 
 // SetLevelFromString parses level from string and set parsed level
-// (NOTE): set level to INFO if parse fail
+// (NOTE): set level to INFO if parse failed
 func SetLevelFromString(s string) logger.Level {
 	level, _ := ParseLevel(s)
 	glogger.SetLevel(level)
