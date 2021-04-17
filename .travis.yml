@@ -1,17 +1,15 @@
 language: go
 
 go:
-    - 1.7
+    - 1.16
 
 sudo: false
 
 install:
     - go get -d -v -u ./...
     - go get github.com/mattn/goveralls
-    - go get github.com/stretchr/testify/assert
 
 script:
     - GOOS=darwin go build
     - GOOS=windows go build
     - GOOS=linux go build
-    - $HOME/gopath/bin/goveralls -service=travis-ci
