@@ -63,9 +63,9 @@ type printer struct {
 	entryListLocker sync.Mutex
 	entryList       *entry
 
-	running    int32
-	writeQueue chan *entry
-	quitNotify chan struct{}
+	running int32
+	queue   chan *entry
+	wait    chan struct{}
 
 	async       bool
 	writeLocker sync.Mutex // used if async==false
@@ -74,11 +74,11 @@ type printer struct {
 // newPrinter creates built in printer
 func newPrinter(writer Writer, async bool) Printer {
 	return &printer{
-		writer:     writer,
-		entryList:  new(entry),
-		writeQueue: make(chan *entry, 8192),
-		quitNotify: make(chan struct{}),
-		async:      async,
+		writer:    writer,
+		entryList: new(entry),
+		queue:     make(chan *entry, 8192),
+		wait:      make(chan struct{}),
+		async:     async,
 	}
 }
 
@@ -88,14 +88,14 @@ func (p *printer) Start() {
 		return
 	}
 	go func() {
-		for e := range p.writeQueue {
+		for e := range p.queue {
 			if e.quit {
 				break
 			}
 			p.writeBuffer(e)
 		}
 		atomic.StoreInt32(&p.running, 0)
-		p.quitNotify <- struct{}{}
+		close(p.quitNotify)
 	}()
 }
 
@@ -104,8 +104,8 @@ func (p *printer) Shutdown() {
 	if !p.async || atomic.LoadInt32(&p.running) == 0 {
 		return
 	}
-	p.writeQueue <- &entry{quit: true}
-	<-p.quitNotify
+	p.queue <- &entry{quit: true}
+	<-p.wait
 	p.writer.Close()
 }
 
@@ -207,11 +207,11 @@ func (p *printer) output(level Level, calldepth int, prefix, format string, args
 			e.WriteString("/")
 			e.WriteString(prefix)
 		}
-		e.WriteString(")")
+		e.WriteString(") ")
 	} else if len(prefix) > 0 {
 		e.WriteString("(")
 		e.WriteString(prefix)
-		e.WriteString(")")
+		e.WriteString(") ")
 	}
 	e.descBegin = e.Len()
 	if len(args) == 0 {
@@ -239,7 +239,7 @@ func (p *printer) output(level Level, calldepth int, prefix, format string, args
 	}
 	if p.async && atomic.LoadInt32(&p.running) != 0 {
 		select {
-		case p.writeQueue <- e:
+		case p.queue <- e:
 		case <-time.After(maxWaitTime):
 		}
 	} else {
@@ -267,7 +267,7 @@ func (p *printer) SetPrefix(prefix string) {
 // Printf implements Printer Printf method
 func (p *printer) Printf(calldepth int, level Level, prefix, format string, args ...interface{}) {
 	if p.GetLevel() >= level {
-		p.output(LvTRACE, calldepth, prefix, format, args...)
+		p.output(level, calldepth, prefix, format, args...)
 	}
 	if level == LvFATAL {
 		// blocked
