@@ -95,7 +95,7 @@ func (p *printer) Start() {
 			p.writeBuffer(e)
 		}
 		atomic.StoreInt32(&p.running, 0)
-		close(p.quitNotify)
+		close(p.wait)
 	}()
 }
 
