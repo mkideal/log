@@ -164,5 +164,5 @@ func Printf(calldepth int, level Level, prefix, format string, args ...interface
 
 // PrefixLogger creates a logger with a extra prefix
 func PrefixLogger(prefix string) Logger {
-	return logger{printer: gprinter, prefix: prefix}
+	return logger{prefix: prefix}
 }

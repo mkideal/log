@@ -18,30 +18,29 @@ type Logger interface {
 
 // logger implements Logger to prints logging with extra prefix
 type logger struct {
-	printer Printer
-	prefix  string
+	prefix string
 }
 
 func (l logger) Trace(format string, args ...interface{}) {
-	l.printer.Printf(1, LvTRACE, l.prefix, format, args...)
+	gprinter.Printf(1, LvTRACE, l.prefix, format, args...)
 }
 
 func (l logger) Debug(format string, args ...interface{}) {
-	l.printer.Printf(1, LvDEBUG, l.prefix, format, args...)
+	gprinter.Printf(1, LvDEBUG, l.prefix, format, args...)
 }
 
 func (l logger) Info(format string, args ...interface{}) {
-	l.printer.Printf(1, LvINFO, l.prefix, format, args...)
+	gprinter.Printf(1, LvINFO, l.prefix, format, args...)
 }
 
 func (l logger) Warn(format string, args ...interface{}) {
-	l.printer.Printf(1, LvWARN, l.prefix, format, args...)
+	gprinter.Printf(1, LvWARN, l.prefix, format, args...)
 }
 
 func (l logger) Error(format string, args ...interface{}) {
-	l.printer.Printf(1, LvERROR, l.prefix, format, args...)
+	gprinter.Printf(1, LvERROR, l.prefix, format, args...)
 }
 
 func (l logger) Fatal(format string, args ...interface{}) {
-	l.printer.Printf(1, LvFATAL, l.prefix, format, args...)
+	gprinter.Printf(1, LvFATAL, l.prefix, format, args...)
 }
