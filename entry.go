@@ -1,4 +1,4 @@
-package logger
+package log
 
 import (
 	"bytes"
@@ -9,33 +9,28 @@ type entry struct {
 	tmp                [32]byte
 	next               *entry
 	level              Level
-	headerLength       int
+	headerLen          int
 	quit               bool
 	timestamp          int64
-	bodyBegin, bodyEnd int
 	descBegin, descEnd int
 }
 
 func (e *entry) Reset() {
 	e.Buffer.Reset()
-	e.bodyBegin = 0
-	e.bodyEnd = 0
 	e.descBegin = 0
 	e.descEnd = 0
 	e.quit = false
-	e.headerLength = 0
+	e.headerLen = 0
 }
 
 func (e *entry) clone() *entry {
 	e2 := &entry{
-		level:        e.level,
-		headerLength: e.headerLength,
-		quit:         e.quit,
-		timestamp:    e.timestamp,
-		bodyBegin:    e.bodyBegin,
-		bodyEnd:      e.bodyEnd,
-		descBegin:    e.descBegin,
-		descEnd:      e.descEnd,
+		level:     e.level,
+		headerLen: e.headerLen,
+		quit:      e.quit,
+		timestamp: e.timestamp,
+		descBegin: e.descBegin,
+		descEnd:   e.descEnd,
 	}
 	e2.Buffer = bytes.Buffer{}
 	e2.Buffer.Write(e.Bytes())
@@ -44,9 +39,7 @@ func (e *entry) clone() *entry {
 
 func (e *entry) Level() Level     { return e.level }
 func (e *entry) Timestamp() int64 { return e.timestamp }
-func (e *entry) Body() []byte     { return e.Bytes()[e.bodyBegin:e.bodyEnd] }
 func (e *entry) Desc() []byte     { return e.Bytes()[e.descBegin:e.descEnd] }
-func (e *entry) Clone() Entry     { return e.clone() }
 
 const digits = "0123456789"
 
