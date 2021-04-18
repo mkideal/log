@@ -21,9 +21,9 @@ func (w *testingLogWriter) Close() error { return nil }
 
 func TestWriter(t *testing.T) {
 	writer := new(testingLogWriter)
-	Start(WithWriter(writer), WithLevel(LvTRACE), WithPrefix("testing"))
+	Start(WithWriters(writer), WithLevel(LvTRACE), WithPrefix("testing"))
 	Printf(1, LvTRACE, "prefix", "hello %s", "log")
-	logger := PrefixLogger("with-prefix")
+	logger := NewLogger("with-prefix")
 	logger.Debug("hello world")
 	Shutdown()
 	got := writer.buf.String()

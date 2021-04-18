@@ -97,13 +97,16 @@ func main() {
 ```go
 // WithWriter
 
+// coloredConsole implements log.Writer interface
 type coloredConsole struct {}
 
+// Write implements log.Writer Write method
 func (c coloredConsole) Write(level log.Level, data []byte, headerLen int) error {
 	// ...
 	return nil
 }
 
+// Close implements log.Writer Close method
 func (c coloredConsole) Close() error{
 	return nil
 }
@@ -125,8 +128,13 @@ func main() {
 // printer implements log.Printer
 type printer struct {}
 
+// ... implements log.Printer methods
+
 func main() {
-	log.WithPrinter(new(printer))
+	log.Start(log.WithPrinter(new(printer)))
+	// WithPrinter conflicts with WithWriter, and printer should specified once.
+	// panics if printer and writers both specified.
+	// panics if more than one printer specified.
 	defer log.Shutdown()
 	...
 }

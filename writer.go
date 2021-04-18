@@ -26,15 +26,15 @@ type Writer interface {
 	Close() error
 }
 
-type mixWriter struct {
+type multiWriter struct {
 	writers []Writer
 }
 
 // Write writes log to all inner writers
-func (p mixWriter) Write(level Level, data []byte, headerLen int) error {
+func (w multiWriter) Write(level Level, data []byte, headerLen int) error {
 	var lastErr error
-	for _, op := range p.writers {
-		if err := op.Write(level, data, headerLen); err != nil {
+	for i := range w.writers {
+		if err := w.writers[i].Write(level, data, headerLen); err != nil {
 			lastErr = err
 		}
 	}
@@ -42,10 +42,10 @@ func (p mixWriter) Write(level Level, data []byte, headerLen int) error {
 }
 
 // Close closes all inner writers
-func (p mixWriter) Close() error {
+func (w multiWriter) Close() error {
 	var lastErr error
-	for _, op := range p.writers {
-		if err := op.Close(); err != nil {
+	for i := range w.writers {
+		if err := w.writers[i].Close(); err != nil {
 			lastErr = err
 		}
 	}
@@ -69,17 +69,54 @@ func newConsole() *console {
 }
 
 // Write implements Writer Write method
-func (p *console) Write(level Level, data []byte, _ int) error {
-	if level <= p.toStderrLevel {
-		_, err := p.stderr.Write(data)
+func (w *console) Write(level Level, data []byte, _ int) error {
+	if level <= w.toStderrLevel {
+		_, err := w.stderr.Write(data)
 		return err
 	}
-	_, err := p.stdout.Write(data)
+	_, err := w.stdout.Write(data)
 	return err
 }
 
 // Close implements Writer Close method
-func (p *console) Close() error { return nil }
+func (w *console) Close() error { return nil }
+
+// File contains the basic writable file operations for logging
+type File interface {
+	io.WriteCloser
+	// Sync commits the current contents of the file to stable storage.
+	// Typically, this means flushing the file system's in-memory copy
+	// of recently written data to disk.
+	Sync() error
+}
+
+// FileSystem wraps the basic fs operations for logging
+type FileSystem interface {
+	OpenFile(name string, flag int, perm os.FileMode) (File, error) // OpenFile opens the file
+	Remove(name string) error                                       // Remove removes the file
+	Symlink(oldname, newname string) error                          // Symlink creates file symlink
+	MkdirAll(path string, perm os.FileMode) error                   // MkdirAll creates a directory
+}
+
+// stdFS wraps the standard filesystem
+type stdFS struct{}
+
+var defaultFS stdFS
+
+// OpenFile implements FileSystem OpenFile method
+func (fs stdFS) OpenFile(name string, flag int, perm os.FileMode) (File, error) {
+	f, err := os.OpenFile(name, flag, perm)
+	return f, err
+}
+
+// Remove implements FileSystem Remove method
+func (fs stdFS) Remove(name string) error { return os.Remove(name) }
+
+// Symlink implements FileSystem Symlink method
+func (fs stdFS) Symlink(oldname, newname string) error { return os.Symlink(oldname, newname) }
+
+// MkdirAll implements FileSystem MkdirAll method
+func (fs stdFS) MkdirAll(path string, perm os.FileMode) error { return os.MkdirAll(path, perm) }
 
 // FileHeader represents header type of file
 type FileHeader int
@@ -131,6 +168,8 @@ type FileOptions struct {
 	Suffix       string     `json:"suffix"`       // filename suffixa(default: .log)
 	DateFormat   string     `json:"dateformat"`   // date format string (default: %04d%02d%02d)
 	Header       FileHeader `json:"header"`       // header type of file (default: NoHeader)
+
+	FS FileSystem `json:"-"` // custom filesystem (default: stdFS)
 }
 
 func (opts *FileOptions) setDefaults() {
@@ -149,6 +188,9 @@ func (opts *FileOptions) setDefaults() {
 	if opts.SymlinkedDir == "" {
 		opts.SymlinkedDir = "symlinked"
 	}
+	if opts.FS == nil {
+		opts.FS = defaultFS
+	}
 }
 
 // file is a writer which writes logs to file
@@ -161,17 +203,17 @@ type file struct {
 
 	mu      sync.Mutex
 	writer  *bufio.Writer
-	file    *os.File
+	file    File
 	written bool
 }
 
 func newFile(options FileOptions) *file {
 	options.setDefaults()
-	p := &file{
+	w := &file{
 		options:   options,
 		fileIndex: -1,
 	}
-	p.rotate(time.Now())
+	w.rotate(time.Now())
 	go func(f *file) {
 		for range time.Tick(time.Second) {
 			f.mu.Lock()
@@ -182,140 +224,140 @@ func newFile(options FileOptions) *file {
 			}
 			f.mu.Unlock()
 		}
-	}(p)
-	return p
+	}(w)
+	return w
 }
 
 // Write writes log to file
-func (p *file) Write(level Level, data []byte, _ int) error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
+func (w *file) Write(level Level, data []byte, _ int) error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
 
-	if p.writer == nil {
+	if w.writer == nil {
 		return errNilWriter
 	}
 	now := time.Now()
-	if !isSameDay(now, p.createdTime) {
-		if err := p.rotate(now); err != nil {
+	if !isSameDay(now, w.createdTime) {
+		if err := w.rotate(now); err != nil {
 			return err
 		}
 	}
-	n, err := p.writer.Write(data)
-	p.written = true
-	p.currentSize += n
-	if p.currentSize >= p.options.MaxSize {
-		p.rotate(now)
+	n, err := w.writer.Write(data)
+	w.written = true
+	w.currentSize += n
+	if w.currentSize >= w.options.MaxSize {
+		w.rotate(now)
 	}
 	return err
 }
 
-func (p *file) closeCurrent() error {
-	if p.writer != nil {
-		if err := p.writer.Flush(); err != nil {
+func (w *file) closeCurrent() error {
+	if w.writer != nil {
+		if err := w.writer.Flush(); err != nil {
 			return err
 		}
-		if err := p.file.Sync(); err != nil {
+		if err := w.file.Sync(); err != nil {
 			return err
 		}
-		if err := p.file.Close(); err != nil {
+		if err := w.file.Close(); err != nil {
 			return err
 		}
-		p.written = false
+		w.written = false
 	}
-	p.currentSize = 0
+	w.currentSize = 0
 	return nil
 }
 
 // Close closes current log file
-func (p *file) Close() error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	return p.closeCurrent()
+func (w *file) Close() error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.closeCurrent()
 }
 
-func (p *file) rotate(now time.Time) error {
-	p.closeCurrent()
-	if isSameDay(now, p.createdTime) {
-		p.fileIndex = (p.fileIndex + 1) % 1000
+func (w *file) rotate(now time.Time) error {
+	w.closeCurrent()
+	if isSameDay(now, w.createdTime) {
+		w.fileIndex = (w.fileIndex + 1) % 1000
 	} else {
-		p.fileIndex = 0
+		w.fileIndex = 0
 	}
-	p.createdTime = now
+	w.createdTime = now
 
 	var err error
-	p.file, err = p.create()
+	w.file, err = w.create()
 	if err != nil {
 		return err
 	}
 
-	p.writer = bufio.NewWriterSize(p.file, 1<<14) // 16k
+	w.writer = bufio.NewWriterSize(w.file, 1<<14) // 16k
 	var buf bytes.Buffer
 	fmt.Fprintf(&buf, "File opened at: %s.\n", now.Format("2006/01/02 15:04:05"))
 	fmt.Fprintf(&buf, "Built with %s %s for %s/%s.\n", runtime.Compiler, runtime.Version(), runtime.GOOS, runtime.GOARCH)
-	if header, ok := fileHeaders[p.options.Header]; ok {
+	if header, ok := fileHeaders[w.options.Header]; ok {
 		fmt.Fprintln(&buf, header)
 	}
-	n, err := p.file.Write(buf.Bytes())
-	p.currentSize += n
-	p.writer.Flush()
-	p.file.Sync()
+	n, err := w.file.Write(buf.Bytes())
+	w.currentSize += n
+	w.writer.Flush()
+	w.file.Sync()
 	return err
 }
 
-func (p *file) create() (*os.File, error) {
-	p.onceCreateLogDir.Do(p.createDir)
+func (w *file) create() (File, error) {
+	w.onceCreateLogDir.Do(w.createDir)
 
 	// make filename
 	var (
-		y, m, d = p.createdTime.Date()
+		y, m, d = w.createdTime.Date()
 		name    string
-		prefix  = p.options.Filename
-		date    = fmt.Sprintf(p.options.DateFormat, y, m, d)
+		prefix  = w.options.Filename
+		date    = fmt.Sprintf(w.options.DateFormat, y, m, d)
 	)
-	if p.options.Filename != "" {
+	if w.options.Filename != "" {
 		prefix += "."
 	}
-	if p.options.Rotate {
+	if w.options.Rotate {
 		name = fmt.Sprintf("%s%s", prefix, date)
 	} else {
-		H, M, _ := p.createdTime.Clock()
+		H, M, _ := w.createdTime.Clock()
 		name = fmt.Sprintf("%s%s-%02d%02d.%06d", prefix, date, H, M, pid)
 	}
-	if p.fileIndex > 0 {
-		name = fmt.Sprintf("%s.%03d", name, p.fileIndex)
+	if w.fileIndex > 0 {
+		name = fmt.Sprintf("%s.%03d", name, w.fileIndex)
 	}
-	if !strings.HasSuffix(name, p.options.Suffix) {
-		name += p.options.Suffix
+	if !strings.HasSuffix(name, w.options.Suffix) {
+		name += w.options.Suffix
 	}
 
 	// create file
 	var (
-		fullname = filepath.Join(p.options.Dir, name)
-		f        *os.File
+		fullname = filepath.Join(w.options.Dir, name)
+		f        File
 		err      error
 	)
-	if !p.options.NoSymlink {
-		fullname = filepath.Join(p.options.Dir, p.options.SymlinkedDir, name)
+	if !w.options.NoSymlink {
+		fullname = filepath.Join(w.options.Dir, w.options.SymlinkedDir, name)
 	}
-	if p.options.Rotate {
-		f, err = os.OpenFile(fullname, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if w.options.Rotate {
+		f, err = w.options.FS.OpenFile(fullname, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	} else {
-		f, err = os.OpenFile(fullname, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
+		f, err = w.options.FS.OpenFile(fullname, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 	}
-	if err == nil && !p.options.NoSymlink {
-		tmp := p.options.Filename
+	if err == nil && !w.options.NoSymlink {
+		tmp := w.options.Filename
 		if tmp == "" {
 			tmp = filepath.Base(os.Args[0])
 		}
-		symlink := filepath.Join(p.options.Dir, tmp+p.options.Suffix)
-		os.Remove(symlink)
-		os.Symlink(filepath.Join(p.options.SymlinkedDir, name), symlink)
+		symlink := filepath.Join(w.options.Dir, tmp+w.options.Suffix)
+		w.options.FS.Remove(symlink)
+		w.options.FS.Symlink(filepath.Join(w.options.SymlinkedDir, name), symlink)
 	}
 	return f, err
 }
 
-func (p *file) createDir() {
-	os.MkdirAll(p.options.Dir, 0755)
+func (w *file) createDir() {
+	w.options.FS.MkdirAll(w.options.Dir, 0755)
 }
 
 func isSameDay(t1, t2 time.Time) bool {
@@ -327,7 +369,7 @@ func isSameDay(t1, t2 time.Time) bool {
 // MultiFileOptions represents options for multi file writer
 type MultiFileOptions struct {
 	RootDir      string `json:"rootdir"`      // log directory (default: .)
-	ErrorDir     string `json:"errordir"`     // error subdirectory (default: error)
+	ErrorDir     string `json:"errordir"`     // error/fatal subdirectory (default: error)
 	WarnDir      string `json:"warndir"`      // warn subdirectory (default: warn)
 	InfoDir      string `json:"infodir"`      // info subdirectory (default: info)
 	DebugDir     string `json:"debugdir"`     // debug subdirectory (default: debug)
@@ -374,95 +416,93 @@ type multiFile struct {
 	group   map[string][]Level
 }
 
-func abs(path string) string {
+func absPath(path string) string {
 	s, _ := filepath.Abs(path)
 	return s
 }
 
 func newMultiFile(options MultiFileOptions) *multiFile {
 	options.setDefaults()
-	p := new(multiFile)
-	p.options = options
+	w := new(multiFile)
+	w.options = options
 	dirs := map[Level]string{
-		LvTRACE: abs(filepath.Join(p.options.RootDir, p.options.TraceDir)),
-		LvDEBUG: abs(filepath.Join(p.options.RootDir, p.options.DebugDir)),
-		LvINFO:  abs(filepath.Join(p.options.RootDir, p.options.InfoDir)),
-		LvWARN:  abs(filepath.Join(p.options.RootDir, p.options.WarnDir)),
-		LvERROR: abs(filepath.Join(p.options.RootDir, p.options.ErrorDir)),
-		LvFATAL: abs(filepath.Join(p.options.RootDir, p.options.ErrorDir)),
+		LvTRACE: absPath(filepath.Join(w.options.RootDir, w.options.TraceDir)),
+		LvDEBUG: absPath(filepath.Join(w.options.RootDir, w.options.DebugDir)),
+		LvINFO:  absPath(filepath.Join(w.options.RootDir, w.options.InfoDir)),
+		LvWARN:  absPath(filepath.Join(w.options.RootDir, w.options.WarnDir)),
+		LvERROR: absPath(filepath.Join(w.options.RootDir, w.options.ErrorDir)),
+		LvFATAL: absPath(filepath.Join(w.options.RootDir, w.options.ErrorDir)),
 	}
-	p.group = map[string][]Level{}
+	w.group = map[string][]Level{}
 	for lv, dir := range dirs {
-		if levels, ok := p.group[dir]; ok {
-			p.group[dir] = append(levels, lv)
+		if levels, ok := w.group[dir]; ok {
+			w.group[dir] = append(levels, lv)
 		} else {
-			p.group[dir] = []Level{lv}
+			w.group[dir] = []Level{lv}
 		}
 	}
-	return p
+	return w
 }
 
-func (p *multiFile) Write(level Level, data []byte, headerLen int) error {
-	if p.files[level] == nil {
-		if err := p.initForLevel(level); err != nil {
+func (w *multiFile) Write(level Level, data []byte, headerLen int) error {
+	if w.files[level.index()] == nil {
+		if err := w.initForLevel(level); err != nil {
 			return err
 		}
 	}
-	return p.files[level].Write(level, data, headerLen)
+	return w.files[level.index()].Write(level, data, headerLen)
 }
 
-func (p *multiFile) Close() error {
+func (w *multiFile) Close() error {
 	var lastErr error
-	for i := range p.files {
-		if i == 0 {
-			continue
-		}
-		if p.files[i] != nil {
-			if err := p.files[i].Close(); err != nil {
+	for i := range w.files {
+		if w.files[i] != nil {
+			if err := w.files[i].Close(); err != nil {
 				lastErr = err
 			}
-			p.files[i] = nil
+			w.files[i] = nil
 		}
 	}
 	return lastErr
 }
 
-func (p *multiFile) initForLevel(level Level) error {
-	if level < 0 || int(level) >= len(p.files) {
+func (w *multiFile) initForLevel(level Level) error {
+	index := level.index()
+	if index < 0 || index >= len(w.files) {
 		return errOutOfRange
 	}
-	f := newFile(p.optionsOfLevel(level))
-	p.files[level] = f
-	if levels, ok := p.group[abs(f.options.Dir)]; ok {
+	f := newFile(w.optionsOfLevel(level))
+	w.files[index] = f
+	if levels, ok := w.group[absPath(f.options.Dir)]; ok {
 		for _, lv := range levels {
-			if p.files[lv] == nil {
-				p.files[lv] = f
+			if w.files[lv.index()] == nil {
+				w.files[lv.index()] = f
 			}
 		}
 	}
 	return nil
 }
 
-func (p *multiFile) optionsOfLevel(level Level) FileOptions {
+func (w *multiFile) optionsOfLevel(level Level) FileOptions {
 	options := FileOptions{
-		MaxSize:    p.options.MaxSize,
-		NoSymlink:  p.options.NoSymlink,
-		Filename:   p.options.Filename,
-		Rotate:     p.options.Rotate,
-		Suffix:     p.options.Suffix,
-		DateFormat: p.options.DateFormat,
+		MaxSize:    w.options.MaxSize,
+		NoSymlink:  w.options.NoSymlink,
+		Filename:   w.options.Filename,
+		Rotate:     w.options.Rotate,
+		Suffix:     w.options.Suffix,
+		DateFormat: w.options.DateFormat,
 	}
 	switch level {
 	case LvFATAL, LvERROR:
-		options.Dir = filepath.Join(p.options.RootDir, p.options.ErrorDir)
+		options.Dir = filepath.Join(w.options.RootDir, w.options.ErrorDir)
 	case LvWARN:
-		options.Dir = filepath.Join(p.options.RootDir, p.options.WarnDir)
+		options.Dir = filepath.Join(w.options.RootDir, w.options.WarnDir)
 	case LvINFO:
-		options.Dir = filepath.Join(p.options.RootDir, p.options.InfoDir)
+		options.Dir = filepath.Join(w.options.RootDir, w.options.InfoDir)
 	case LvDEBUG:
-		options.Dir = filepath.Join(p.options.RootDir, p.options.DebugDir)
+		options.Dir = filepath.Join(w.options.RootDir, w.options.DebugDir)
 	default:
-		options.Dir = filepath.Join(p.options.RootDir, p.options.TraceDir)
+		options.Dir = filepath.Join(w.options.RootDir, w.options.TraceDir)
 	}
 	return options
 }
