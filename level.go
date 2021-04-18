@@ -12,14 +12,15 @@ import (
 // Level represents log level
 type Level int32
 
+// Level constants
 const (
 	_       Level = iota // 0
-	LvFATAL              // LvFATAL 1
-	LvERROR              // LvERROR 2
-	LvWARN               // LvWARN  3
-	LvINFO               // LvINFO  4
-	LvDEBUG              // LvDEBUG 5
-	LvTRACE              // LvTRACE 6
+	LvFATAL              // 1
+	LvERROR              // 2
+	LvWARN               // 3
+	LvINFO               // 4
+	LvDEBUG              // 5
+	LvTRACE              // 6
 	numLevel
 )
 
@@ -84,6 +85,7 @@ func (level *Level) UnmarshalJSON(data []byte) error {
 	return level.Set(s)
 }
 
+// MoreVerboseThan returns whether level more verbose than other
 func (level Level) MoreVerboseThan(other Level) bool { return level > other }
 
 // ParseLevel parses log level from string

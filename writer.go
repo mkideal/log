@@ -84,6 +84,7 @@ func (p *console) Close() error { return nil }
 // FileHeader represents header type of file
 type FileHeader int
 
+// FileHeader constants
 const (
 	NoHeader   FileHeader = 0 // no header in file
 	HTMLHeader FileHeader = 1 // append html header in file
