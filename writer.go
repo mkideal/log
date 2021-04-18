@@ -85,8 +85,8 @@ func (p *console) Close() error { return nil }
 type FileHeader int
 
 const (
-	NoHeader   FileHeader = 0
-	HTMLHeader FileHeader = 1
+	NoHeader   FileHeader = 0 // no header in file
+	HTMLHeader FileHeader = 1 // append html header in file
 )
 
 var fileHeaders = map[FileHeader]string{
@@ -323,6 +323,7 @@ func isSameDay(t1, t2 time.Time) bool {
 	return y1 == y2 && m1 == m2 && d1 == d2
 }
 
+// MultiFileOptions represents options for multi file writer
 type MultiFileOptions struct {
 	RootDir      string `json:"rootdir"`      // log directory (default: .)
 	ErrorDir     string `json:"errordir"`     // error subdirectory (default: error)

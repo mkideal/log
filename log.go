@@ -58,7 +58,7 @@ func WithPrinter(printer Printer) Option {
 	}
 }
 
-// WithPrinter appends a custom writer
+// WithWriter appends a custom writer
 func WithWriter(writer Writer) Option {
 	return func(opt *startOptions) {
 		opt.writers = append(opt.writers, writer)
@@ -122,7 +122,7 @@ func GetLevel() Level {
 	return gprinter.GetLevel()
 }
 
-// SetLevel sets level of gloabl printer
+// SetLevel sets level of global printer
 func SetLevel(level Level) {
 	gprinter.SetLevel(level)
 }
@@ -152,7 +152,7 @@ func Error(format string, args ...interface{}) {
 	gprinter.Printf(1, LvERROR, "", format, args...)
 }
 
-// Trace prints log with fatal level
+// Fatal prints log with fatal level
 func Fatal(format string, args ...interface{}) {
 	gprinter.Printf(1, LvFATAL, "", format, args...)
 }

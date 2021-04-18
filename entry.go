@@ -79,3 +79,30 @@ func someDigits(e *entry, begin int, v int) int {
 	}
 	return copy(e.tmp[begin:], e.tmp[j:])
 }
+
+// entry queue
+type queue struct {
+	in  []*entry
+	out []*entry
+}
+
+func newQueue() *queue {
+	return &queue{
+		in: make([]*entry, 0, 64),
+	}
+}
+
+func (q *queue) size() int {
+	return len(q.in)
+}
+
+func (q *queue) push(e *entry) int {
+	q.in = append(q.in, e)
+	return len(q.in)
+}
+
+func (q *queue) popAll() []*entry {
+	q.in, q.out = q.out, q.in
+	q.in = q.in[:0]
+	return q.out
+}

@@ -13,17 +13,14 @@ import (
 	"time"
 )
 
-const (
-	maxWaitTimeForVerboseLevel   = 100 * time.Millisecond // trace, debug
-	maxWaitTimeForImportantLevel = 3 * time.Second        // info, warn, error, fatal
-)
-
 // Printer represents the printer for logging
 type Printer interface {
 	// Start starts the printer
 	Start()
 	// Quit quits the printer
 	Shutdown()
+	// Flush flushs all queued logs
+	Flush()
 	// GetLevel gets current log level
 	GetLevel() Level
 	// SetLevel sets log level
@@ -63,62 +60,148 @@ type printer struct {
 	entryListLocker sync.Mutex
 	entryList       *entry
 
-	running int32
-	queue   chan *entry
-	wait    chan struct{}
+	async bool
 
-	async       bool
-	writeLocker sync.Mutex // used if async==false
+	// used if async==false
+	writeLocker sync.Mutex
+
+	// used if async==true
+	running int32
+	queue   *queue
+	queueMu sync.Mutex
+	cond    *sync.Cond
+	flush   chan chan struct{}
+	quit    chan struct{}
+	wait    chan struct{}
 }
 
 // newPrinter creates built in printer
 func newPrinter(writer Writer, async bool) Printer {
-	return &printer{
+	p := &printer{
 		writer:    writer,
 		entryList: new(entry),
-		queue:     make(chan *entry, 8192),
-		wait:      make(chan struct{}),
 		async:     async,
 	}
+	if async {
+		p.queue = newQueue()
+		p.cond = sync.NewCond(&p.queueMu)
+		p.flush = make(chan chan struct{}, 1)
+		p.quit = make(chan struct{})
+		p.wait = make(chan struct{})
+	}
+	return p
 }
 
 // Start implements Printer Start method
 func (p *printer) Start() {
-	if !p.async || atomic.AddInt32(&p.running, 1) > 1 {
+	if p.queue == nil {
 		return
 	}
-	go func() {
-		for e := range p.queue {
-			if e.quit {
-				break
-			}
-			p.writeBuffer(e)
+	if !atomic.CompareAndSwapInt32(&p.running, 0, 1) {
+		return
+	}
+	go p.run()
+}
+
+func (p *printer) run() {
+	for {
+		p.cond.L.Lock()
+		if p.queue.size() == 0 {
+			p.cond.Wait()
 		}
-		atomic.StoreInt32(&p.running, 0)
-		close(p.wait)
-	}()
+		entries := p.queue.popAll()
+		p.cond.L.Unlock()
+		p.writeEntries(entries)
+		if p.consumeSignals() {
+			break
+		}
+	}
+}
+
+func (p *printer) consumeSignals() bool {
+	for {
+		select {
+		case resp := <-p.flush:
+			p.flushAll()
+			close(resp)
+			continue
+		case <-p.quit:
+			p.flushAll()
+			close(p.wait)
+			return true
+		default:
+			return false
+		}
+	}
+}
+
+func (p *printer) flushAll() {
+	p.cond.L.Lock()
+	entries := p.queue.popAll()
+	p.cond.L.Unlock()
+	p.writeEntries(entries)
+}
+
+func (p *printer) writeEntries(entries []*entry) {
+	for _, e := range entries {
+		p.writeEntry(e)
+	}
 }
 
 // Shutdown implements Printer Shutdown method
 func (p *printer) Shutdown() {
-	if !p.async || atomic.LoadInt32(&p.running) == 0 {
+	if p.queue == nil {
 		return
 	}
-	p.queue <- &entry{quit: true}
+	if !atomic.CompareAndSwapInt32(&p.running, 1, 0) {
+		return
+	}
+	close(p.quit)
+	p.cond.Signal()
 	<-p.wait
 	p.writer.Close()
 }
 
-func (p *printer) writeBuffer(e *entry) {
-	p.writer.Write(e.level, e.Bytes(), e.headerLen)
-	if e.level == LvFATAL {
-		p.writer.Close()
-		os.Exit(1)
-	}
-	p.putBuffer(e)
+// Flush implements Printer Flush method
+func (p *printer) Flush() {
+	wait := make(chan struct{})
+	p.flush <- wait
+	p.cond.Signal()
+	<-wait
 }
 
-func (p *printer) getBuffer() *entry {
+// GetLevel implements Printer GetLevel method
+func (p *printer) GetLevel() Level {
+	return Level(atomic.LoadInt32((*int32)(&p.level)))
+}
+
+// SetLevel implements Printer SetLevel method
+func (p *printer) SetLevel(level Level) {
+	atomic.StoreInt32((*int32)(&p.level), int32(level))
+}
+
+// SetPrefix implements Printer SetPrefix method, SetPrefix is not concurrent-safe
+func (p *printer) SetPrefix(prefix string) {
+	p.prefix = prefix
+}
+
+// Printf implements Printer Printf method
+func (p *printer) Printf(calldepth int, level Level, prefix, format string, args ...interface{}) {
+	if p.GetLevel() >= level {
+		p.output(level, calldepth, prefix, format, args...)
+	}
+	if level == LvFATAL {
+		p.Shutdown()
+		os.Exit(1)
+	}
+}
+
+func (p *printer) writeEntry(e *entry) {
+	p.writer.Write(e.level, e.Bytes(), e.headerLen)
+	p.putEntry(e)
+}
+
+func (p *printer) getEntry() *entry {
 	p.entryListLocker.Lock()
 	if b := p.entryList; b != nil {
 		p.entryList = b.next
@@ -131,7 +214,7 @@ func (p *printer) getBuffer() *entry {
 	return new(entry)
 }
 
-func (p *printer) putBuffer(e *entry) {
+func (p *printer) putEntry(e *entry) {
 	if e.Len() > 256 {
 		return
 	}
@@ -147,7 +230,7 @@ func (p *printer) formatHeader(now time.Time, level Level, file string, line int
 		line = 0
 	}
 	var (
-		e                    = p.getBuffer()
+		e                    = p.getEntry()
 		year, month, day     = now.Date()
 		hour, minute, second = now.Clock()
 		millisecond          = now.Nanosecond() / 1000000
@@ -233,45 +316,16 @@ func (p *printer) output(level Level, calldepth int, prefix, format string, args
 		return
 	}
 	e.level = level
-	maxWaitTime := maxWaitTimeForImportantLevel
-	if e.level.MoreVerboseThan(LvINFO) {
-		maxWaitTime = maxWaitTimeForVerboseLevel
-	}
-	if p.async && atomic.LoadInt32(&p.running) != 0 {
-		select {
-		case p.queue <- e:
-		case <-time.After(maxWaitTime):
+	if p.queue != nil && atomic.LoadInt32(&p.running) != 0 {
+		p.cond.L.Lock()
+		if p.queue.push(e) == 1 {
+			p.cond.Signal()
 		}
+		p.cond.L.Unlock()
 	} else {
 		p.writeLocker.Lock()
-		p.writeBuffer(e)
+		p.writeEntry(e)
 		p.writeLocker.Unlock()
-	}
-}
-
-// GetLevel implements Printer GetLevel method
-func (p *printer) GetLevel() Level {
-	return Level(atomic.LoadInt32((*int32)(&p.level)))
-}
-
-// SetLevel implements Printer SetLevel method
-func (p *printer) SetLevel(level Level) {
-	atomic.StoreInt32((*int32)(&p.level), int32(level))
-}
-
-// SetPrefix implements Printer SetPrefix method, SetPrefix is not concurrent-safe
-func (p *printer) SetPrefix(prefix string) {
-	p.prefix = prefix
-}
-
-// Printf implements Printer Printf method
-func (p *printer) Printf(calldepth int, level Level, prefix, format string, args ...interface{}) {
-	if p.GetLevel() >= level {
-		p.output(level, calldepth, prefix, format, args...)
-	}
-	if level == LvFATAL {
-		// blocked
-		select {}
 	}
 }
 
@@ -282,9 +336,7 @@ type stdPrinter struct {
 
 // newStdPrinter creates std logger
 func newStdPrinter() Printer {
-	p := new(stdPrinter)
-	*p = stdPrinter{level: LvINFO}
-	return p
+	return &stdPrinter{level: LvINFO}
 }
 
 // Start implements Printer Start method
@@ -292,6 +344,9 @@ func (stdPrinter) Start() {}
 
 // Shutdown implements Printer Shutdown method
 func (stdPrinter) Shutdown() {}
+
+// Flush implements Printer Flush method
+func (stdPrinter) Flush() {}
 
 // NoHeader implements Printer NoHeader method
 func (stdPrinter) SetHeader() { std.SetPrefix("") }

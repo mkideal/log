@@ -14,16 +14,16 @@ type Level int32
 
 const (
 	_       Level = iota // 0
-	LvFATAL              // 1
-	LvERROR              // 2
-	LvWARN               // 3
-	LvINFO               // 4
-	LvDEBUG              // 5
-	LvTRACE              // 6
+	LvFATAL              // LvFATAL 1
+	LvERROR              // LvERROR 2
+	LvWARN               // LvWARN  3
+	LvINFO               // LvINFO  4
+	LvDEBUG              // LvDEBUG 5
+	LvTRACE              // LvTRACE 6
 	numLevel
 )
 
-var ErrUnrecognizedLogLevel = errors.New("unrecognized log level")
+var errUnrecognizedLogLevel = errors.New("unrecognized log level")
 
 // Set implements flag.Value interface such that you can use level  as a command as following:
 //
@@ -33,7 +33,7 @@ func (level *Level) Set(s string) error {
 	lv, ok := ParseLevel(s)
 	*level = lv
 	if !ok {
-		return ErrUnrecognizedLogLevel
+		return errUnrecognizedLogLevel
 	}
 	return nil
 }
@@ -110,7 +110,7 @@ func ParseLevel(s string) (lv Level, ok bool) {
 func MustParseLevel(s string) Level {
 	lv, ok := ParseLevel(s)
 	if !ok {
-		panic(ErrUnrecognizedLogLevel.Error() + ": " + s)
+		panic(errUnrecognizedLogLevel.Error() + ": " + s)
 	}
 	return lv
 }
