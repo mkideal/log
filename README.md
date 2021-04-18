@@ -95,7 +95,7 @@ func main() {
 ```
 
 ```go
-// WithWriter
+// WithWriters
 
 // coloredConsole implements log.Writer interface
 type coloredConsole struct {}
@@ -112,12 +112,12 @@ func (c coloredConsole) Close() error{
 }
 
 func main() {
-	log.Start(log.WithWriter(coloredConsole{}))
+	log.Start(log.WithWriters(coloredConsole{}))
 	// multi-writers supported, e.g.
 	//
-	//	log.Start(log.WithWriter(coloredConsole{}), log.WithFile(...))
+	//	log.Start(log.WithWriters(coloredConsole{}), log.WithFile(...))
 	defer log.Shutdown()
-	...
+	// ...
 }
 ```
 
@@ -132,11 +132,11 @@ type printer struct {}
 
 func main() {
 	log.Start(log.WithPrinter(new(printer)))
-	// WithPrinter conflicts with WithWriter, and printer should specified once.
+	// WithPrinter conflicts with WithWriters, and printer should specified once.
 	// panics if printer and writers both specified.
 	// panics if more than one printer specified.
 	defer log.Shutdown()
-	...
+	// ...
 }
 ```
 
@@ -145,7 +145,7 @@ func main() {
 func main() {
 	log.Start(log.WithHTTPHandler(true))
 	defer log.Shutdown()
-	...
+	// ...
 }
 ```
 
@@ -154,7 +154,7 @@ func main() {
 func main() {
 	log.Start(log.WithLevel(log.LvWARN))
 	defer log.Shutdown()
-	...
+	// ...
 }
 ```
 
@@ -163,15 +163,15 @@ func main() {
 func main() {
 	log.Start(log.WithPrefix("name"))
 	defer log.Shutdown()
-	...
+	// ...
 }
 ```
 Print functions
 ---------------
 
--	**Fatal**\(*format string, args ...interface{}*) - Print and exit program with code 1
--	**Error**\(*format string, args ...interface{}*) - Print if level >= ERROR
--	**Warn**\(*format string, args ...interface{}*) - Print if level >= WARN
--	**Info**\(*format string, args ...interface{}*) - Print if level >= INFO
--	**Debug**\(*format string, args ...interface{}*) - Print if level >= DEBUG
--	**Trace**\(*format string, args ...interface{}*) - Print if level >= TRACE
+-	**Fatal**\(*format string, args ...interface{}*)
+-	**Error**\(*format string, args ...interface{}*)
+-	**Warn**\(*format string, args ...interface{}*)
+-	**Info**\(*format string, args ...interface{}*)
+-	**Debug**\(*format string, args ...interface{}*)
+-	**Trace**\(*format string, args ...interface{}*)
