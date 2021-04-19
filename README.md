@@ -115,7 +115,7 @@ func main() {
 	log.Start(log.WithWriters(coloredConsole{}))
 	// multi-writers supported, e.g.
 	//
-	//	log.Start(log.WithWriters(coloredConsole{}), log.WithFile(...))
+	// log.Start(log.WithWriters(coloredConsole{}), log.WithFile(...))
 	defer log.Shutdown()
 	// ...
 }

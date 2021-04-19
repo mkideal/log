@@ -446,13 +446,11 @@ func (p *printer) output(level Level, calldepth int, prefix, format string, args
 		e.WriteString(prefix)
 		e.WriteString(") ")
 	}
-	e.descBegin = e.Len()
 	if len(args) == 0 {
 		fmt.Fprint(e, format)
 	} else {
 		fmt.Fprintf(e, format, args...)
 	}
-	e.descEnd = e.Len()
 	if e.Len() > 0 && e.Bytes()[e.Len()-1] != '\n' {
 		e.WriteByte('\n')
 	}

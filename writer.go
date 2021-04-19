@@ -166,7 +166,7 @@ type FileOptions struct {
 	MaxSize      int        `json:"maxsize"`      // max bytes number of every log file(default: 64M)
 	Rotate       bool       `json:"rotate"`       // enable log rotate (default: no)
 	Suffix       string     `json:"suffix"`       // filename suffixa(default: .log)
-	DateFormat   string     `json:"dateformat"`   // date format string (default: %04d%02d%02d)
+	DateFormat   string     `json:"dateformat"`   // date format string for filename (default: %04d%02d%02d)
 	Header       FileHeader `json:"header"`       // header type of file (default: NoHeader)
 
 	FS FileSystem `json:"-"` // custom filesystem (default: stdFS)
@@ -368,24 +368,19 @@ func isSameDay(t1, t2 time.Time) bool {
 
 // MultiFileOptions represents options for multi file writer
 type MultiFileOptions struct {
-	RootDir      string `json:"rootdir"`      // log directory (default: .)
-	ErrorDir     string `json:"errordir"`     // error/fatal subdirectory (default: error)
-	WarnDir      string `json:"warndir"`      // warn subdirectory (default: warn)
-	InfoDir      string `json:"infodir"`      // info subdirectory (default: info)
-	DebugDir     string `json:"debugdir"`     // debug subdirectory (default: debug)
-	TraceDir     string `json:"tracedir"`     // trace subdirectory (default: trace)
-	Filename     string `json:"filename"`     // log filename (default: <appName>.log)
-	SymlinkedDir string `json:"symlinkeddir"` // symlinked directory is symlink enabled (default: symlinked)
-	NoSymlink    bool   `json:"nosymlink"`    // doesn't create symlink to latest log file (default: false)
-	MaxSize      int    `json:"maxsize"`      // max bytes number of every log file (default: 64M)
-	Rotate       bool   `json:"rotate"`       // enable log rotate (default: true)
-	Suffix       string `json:"suffix"`       // filename suffix (default: log)
-	DateFormat   string `json:"dateformat"`   // date format string (default: %04d%02d%02d)
+	FileOptions
+	FatalDir string `json:"fataldir"` // fatal subdirectory (default: fatal)
+	ErrorDir string `json:"errordir"` // error subdirectory (default: error)
+	WarnDir  string `json:"warndir"`  // warn subdirectory (default: warn)
+	InfoDir  string `json:"infodir"`  // info subdirectory (default: info)
+	DebugDir string `json:"debugdir"` // debug subdirectory (default: debug)
+	TraceDir string `json:"tracedir"` // trace subdirectory (default: trace)
 }
 
 func (opts *MultiFileOptions) setDefaults() {
-	if opts.RootDir == "" {
-		opts.RootDir = "."
+	opts.FileOptions.setDefaults()
+	if opts.FatalDir == "" {
+		opts.FatalDir = "fatal"
 	}
 	if opts.ErrorDir == "" {
 		opts.ErrorDir = "error"
@@ -401,12 +396,6 @@ func (opts *MultiFileOptions) setDefaults() {
 	}
 	if opts.TraceDir == "" {
 		opts.TraceDir = "trace"
-	}
-	if opts.MaxSize <= 0 {
-		opts.MaxSize = 1 << 26
-	}
-	if opts.DateFormat == "" {
-		opts.DateFormat = "%04d%02d%02d"
 	}
 }
 
@@ -425,20 +414,13 @@ func newMultiFile(options MultiFileOptions) *multiFile {
 	options.setDefaults()
 	w := new(multiFile)
 	w.options = options
-	dirs := map[Level]string{
-		LvTRACE: absPath(filepath.Join(w.options.RootDir, w.options.TraceDir)),
-		LvDEBUG: absPath(filepath.Join(w.options.RootDir, w.options.DebugDir)),
-		LvINFO:  absPath(filepath.Join(w.options.RootDir, w.options.InfoDir)),
-		LvWARN:  absPath(filepath.Join(w.options.RootDir, w.options.WarnDir)),
-		LvERROR: absPath(filepath.Join(w.options.RootDir, w.options.ErrorDir)),
-		LvFATAL: absPath(filepath.Join(w.options.RootDir, w.options.ErrorDir)),
-	}
 	w.group = map[string][]Level{}
-	for lv, dir := range dirs {
+	for level := LvFATAL; level <= LvTRACE; level++ {
+		dir := w.levelDir(level)
 		if levels, ok := w.group[dir]; ok {
-			w.group[dir] = append(levels, lv)
+			w.group[dir] = append(levels, level)
 		} else {
-			w.group[dir] = []Level{lv}
+			w.group[dir] = []Level{level}
 		}
 	}
 	return w
@@ -484,25 +466,24 @@ func (w *multiFile) initForLevel(level Level) error {
 }
 
 func (w *multiFile) optionsOfLevel(level Level) FileOptions {
-	options := FileOptions{
-		MaxSize:    w.options.MaxSize,
-		NoSymlink:  w.options.NoSymlink,
-		Filename:   w.options.Filename,
-		Rotate:     w.options.Rotate,
-		Suffix:     w.options.Suffix,
-		DateFormat: w.options.DateFormat,
-	}
-	switch level {
-	case LvFATAL, LvERROR:
-		options.Dir = filepath.Join(w.options.RootDir, w.options.ErrorDir)
-	case LvWARN:
-		options.Dir = filepath.Join(w.options.RootDir, w.options.WarnDir)
-	case LvINFO:
-		options.Dir = filepath.Join(w.options.RootDir, w.options.InfoDir)
-	case LvDEBUG:
-		options.Dir = filepath.Join(w.options.RootDir, w.options.DebugDir)
-	default:
-		options.Dir = filepath.Join(w.options.RootDir, w.options.TraceDir)
-	}
+	options := w.options.FileOptions
+	options.Dir = filepath.Join(options.Dir, w.levelDir(level))
 	return options
+}
+
+func (w *multiFile) levelDir(level Level) string {
+	switch level {
+	case LvFATAL:
+		return w.options.FatalDir
+	case LvERROR:
+		return w.options.ErrorDir
+	case LvWARN:
+		return w.options.WarnDir
+	case LvINFO:
+		return w.options.InfoDir
+	case LvDEBUG:
+		return w.options.DebugDir
+	default:
+		return w.options.TraceDir
+	}
 }
