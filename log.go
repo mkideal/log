@@ -171,6 +171,8 @@ type Printer interface {
 	Shutdown()
 	// Flush flushs all queued logs
 	Flush()
+	// SetCaller sets whether print caller information
+	SetCaller(bool)
 	// GetLevel gets current log level
 	GetLevel() Level
 	// SetLevel sets log level
@@ -206,6 +208,7 @@ type printer struct {
 	level  Level
 	prefix string
 	writer Writer
+	caller int32
 
 	entryListLocker sync.Mutex
 	entryList       *entry
@@ -320,6 +323,15 @@ func (p *printer) Flush() {
 	<-wait
 }
 
+// SetCaller implements Printer SetCaller method
+func (p *printer) SetCaller(yes bool) {
+	if yes {
+		atomic.StoreInt32(&p.caller, 1)
+	} else {
+		atomic.StoreInt32(&p.caller, 0)
+	}
+}
+
 // GetLevel implements Printer GetLevel method
 func (p *printer) GetLevel() Level {
 	return Level(atomic.LoadInt32((*int32)(&p.level)))
@@ -384,6 +396,7 @@ func (p *printer) formatHeader(now time.Time, level Level, file string, line int
 		year, month, day     = now.Date()
 		hour, minute, second = now.Clock()
 		millisecond          = now.Nanosecond() / 1000000
+		noCaller             = len(file) == 0
 	)
 	e.timestamp = now.Unix()
 	e.tmp[0] = '['
@@ -404,23 +417,37 @@ func (p *printer) formatHeader(now time.Time, level Level, file string, line int
 	threeDigits(e, 23, millisecond)
 	e.tmp[26] = ']'
 	e.tmp[27] = ' '
-	e.tmp[28] = '['
-	e.Write(e.tmp[:29])
-	e.WriteString(file)
-	e.tmp[0] = ':'
-	n := someDigits(e, 1, line)
-	e.tmp[n+1] = ']'
-	e.tmp[n+2] = ' '
-	e.Write(e.tmp[:n+3])
+	if !noCaller {
+		e.tmp[28] = '['
+		e.Write(e.tmp[:29])
+		e.WriteString(file)
+		e.tmp[0] = ':'
+		n := someDigits(e, 1, line)
+		e.tmp[n+1] = ']'
+		e.tmp[n+2] = ' '
+		e.Write(e.tmp[:n+3])
+	} else {
+		e.Write(e.tmp[:28])
+	}
 
 	return e
 }
 
 func (p *printer) header(level Level, calldepth int) *entry {
-	_, file, line, ok := runtime.Caller(calldepth)
+	var (
+		file     string
+		line     int
+		ok       bool
+		noCaller = atomic.LoadInt32(&p.caller) == 0
+	)
+	if !noCaller {
+		_, file, line, ok = runtime.Caller(calldepth)
+	}
 	if !ok {
-		file = "???"
-		line = 0
+		if !noCaller {
+			file = "???"
+			line = 0
+		}
 	} else {
 		slash := strings.LastIndex(file, "/")
 		if slash >= 0 {
@@ -496,8 +523,11 @@ func (stdPrinter) Shutdown() {}
 // Flush implements Printer Flush method
 func (stdPrinter) Flush() {}
 
-// NoHeader implements Printer NoHeader method
+// SetHeader implements Printer SetHeader method
 func (stdPrinter) SetHeader() { std.SetPrefix("") }
+
+// SetCaller implements Printer SetCaller method
+func (stdPrinter) SetCaller(yes bool) {}
 
 // GetLevel implements Printer GetLevel method
 func (p stdPrinter) GetLevel() Level { return Level(atomic.LoadInt32((*int32)(&p.level))) }
@@ -546,6 +576,7 @@ var gprinter = newStdPrinter()
 
 type startOptions struct {
 	httpHandler bool
+	caller      bool
 	sync        bool
 	level       Level
 	prefix      string
@@ -575,6 +606,13 @@ func WithSync(yes bool) Option {
 func WithHTTPHandler(yes bool) Option {
 	return func(opt *startOptions) {
 		opt.httpHandler = yes
+	}
+}
+
+// WithCaller enable or disable caller information
+func WithCaller(yes bool) Option {
+	return func(opt *startOptions) {
+		opt.caller = yes
 	}
 }
 
@@ -664,6 +702,7 @@ func Start(options ...Option) error {
 		opt.printer.SetLevel(opt.level)
 	}
 	opt.printer.SetPrefix(opt.prefix)
+	opt.printer.SetCaller(opt.caller)
 
 	if changed {
 		gprinter.Shutdown()
@@ -676,9 +715,14 @@ func Start(options ...Option) error {
 	return nil
 }
 
-// Shutdown shutdowns logging
+// Shutdown shutdowns global printer
 func Shutdown() {
 	gprinter.Shutdown()
+}
+
+// SetCaller sets whether print caller information
+func SetCaller(yes bool) {
+	gprinter.SetCaller(yes)
 }
 
 // GetLevel gets current log level
@@ -726,7 +770,7 @@ func Printf(calldepth int, level Level, prefix, format string, args ...interface
 	gprinter.Printf(calldepth, level, prefix, format, args...)
 }
 
-// NewLogger creates a logger with a extra prefix
+// NewLogger creates a logger with a extra prefix print logging to global printer
 func NewLogger(prefix string) Logger {
 	return logger{prefix: prefix}
 }
@@ -747,31 +791,37 @@ type Logger interface {
 	Fatal(format string, args ...interface{})
 }
 
-// logger implements Logger to prints logging with extra prefix
+// logger implements Logger to prints logging with extra prefix to global printer
 type logger struct {
 	prefix string
 }
 
+// Trace implements Logger Trace method
 func (l logger) Trace(format string, args ...interface{}) {
 	gprinter.Printf(1, LvTRACE, l.prefix, format, args...)
 }
 
+// Debug implements Logger Debug method
 func (l logger) Debug(format string, args ...interface{}) {
 	gprinter.Printf(1, LvDEBUG, l.prefix, format, args...)
 }
 
+// Info implements Logger Info method
 func (l logger) Info(format string, args ...interface{}) {
 	gprinter.Printf(1, LvINFO, l.prefix, format, args...)
 }
 
+// Warn implements Logger Warn method
 func (l logger) Warn(format string, args ...interface{}) {
 	gprinter.Printf(1, LvWARN, l.prefix, format, args...)
 }
 
+// Error implements Logger Error method
 func (l logger) Error(format string, args ...interface{}) {
 	gprinter.Printf(1, LvERROR, l.prefix, format, args...)
 }
 
+// Fatal implements Logger Fatal method
 func (l logger) Fatal(format string, args ...interface{}) {
 	gprinter.Printf(1, LvFATAL, l.prefix, format, args...)
 }
