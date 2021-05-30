@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	std "log"
 	"net/http"
 	"os"
@@ -523,20 +522,24 @@ func (stdPrinter) Shutdown() {}
 // Flush implements Printer Flush method
 func (stdPrinter) Flush() {}
 
-// SetHeader implements Printer SetHeader method
-func (stdPrinter) SetHeader() { std.SetPrefix("") }
+// SetPrefix implements Printer SetPrefix method
+func (stdPrinter) SetPrefix(prefix string) { std.SetPrefix(prefix) }
 
 // SetCaller implements Printer SetCaller method
-func (stdPrinter) SetCaller(yes bool) {}
+func (stdPrinter) SetCaller(yes bool) {
+	std.SetFlags(std.Flags() & (^std.Llongfile))
+	if yes {
+		std.SetFlags(std.Flags() | std.Lshortfile)
+	} else {
+		std.SetFlags(std.Flags() & (^std.Lshortfile))
+	}
+}
 
 // GetLevel implements Printer GetLevel method
 func (p stdPrinter) GetLevel() Level { return Level(atomic.LoadInt32((*int32)(&p.level))) }
 
 // SetLevel implements Printer SetLevel method
 func (p *stdPrinter) SetLevel(level Level) { atomic.StoreInt32((*int32)(&p.level), int32(level)) }
-
-// SetPrefix implements Printer SetPrefix method
-func (p *stdPrinter) SetPrefix(prefix string) { log.SetPrefix(prefix) }
 
 // Printf implements Printer Printf method
 func (p stdPrinter) Printf(calldepth int, level Level, prefix, format string, args ...interface{}) {

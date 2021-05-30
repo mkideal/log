@@ -90,8 +90,8 @@ type File interface {
 	Sync() error
 }
 
-// FileSystem wraps the basic fs operations for logging
-type FileSystem interface {
+// FS wraps the basic fs operations for logging
+type FS interface {
 	OpenFile(name string, flag int, perm os.FileMode) (File, error) // OpenFile opens the file
 	Remove(name string) error                                       // Remove removes the file
 	Symlink(oldname, newname string) error                          // Symlink creates file symlink
@@ -103,19 +103,19 @@ type stdFS struct{}
 
 var defaultFS stdFS
 
-// OpenFile implements FileSystem OpenFile method
+// OpenFile implements FS OpenFile method
 func (fs stdFS) OpenFile(name string, flag int, perm os.FileMode) (File, error) {
 	f, err := os.OpenFile(name, flag, perm)
 	return f, err
 }
 
-// Remove implements FileSystem Remove method
+// Remove implements FS Remove method
 func (fs stdFS) Remove(name string) error { return os.Remove(name) }
 
-// Symlink implements FileSystem Symlink method
+// Symlink implements FS Symlink method
 func (fs stdFS) Symlink(oldname, newname string) error { return os.Symlink(oldname, newname) }
 
-// MkdirAll implements FileSystem MkdirAll method
+// MkdirAll implements FS MkdirAll method
 func (fs stdFS) MkdirAll(path string, perm os.FileMode) error { return os.MkdirAll(path, perm) }
 
 // FileHeader represents header type of file
@@ -169,7 +169,7 @@ type FileOptions struct {
 	DateFormat   string     `json:"dateformat"`   // date format string for filename (default: %04d%02d%02d)
 	Header       FileHeader `json:"header"`       // header type of file (default: NoHeader)
 
-	FS FileSystem `json:"-"` // custom filesystem (default: stdFS)
+	FS FS `json:"-"` // custom filesystem (default: stdFS)
 }
 
 func (opts *FileOptions) setDefaults() {
