@@ -61,6 +61,10 @@ func (b *builder) writeString(s string) {
 	b.buf = append(b.buf, s...)
 }
 
+func (b *builder) writeQuotedString(s string) {
+	b.buf = strconv.AppendQuote(b.buf, s)
+}
+
 func (b *builder) writeInt(i int64) {
 	b.buf = strconv.AppendInt(b.buf, i, 10)
 }

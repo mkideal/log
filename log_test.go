@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/mkideal/log"
 )
@@ -45,34 +46,67 @@ func TestWriter(t *testing.T) {
 func ExampleFields() {
 	writer := new(testingLogWriter)
 	log.Start(log.WithWriters(writer), log.WithLevel(log.LvINFO), log.WithPrefix("testing"))
-	log.Info().
-		Int("int", 123456).
-		Int8("int8", -12).
-		Int16("int16", 1234).
-		Int32("int32", -12345678).
-		Int64("int64", 1234567890).
-		Uint("uint", 123456).
-		Uint8("uint8", 120).
-		Uint16("uint16", 12340).
-		Uint32("uint32", 123456780).
-		Uint64("uint64", 12345678900).
-		Float32("float32", 1234.5678).
-		Float64("float64", 0.123456789).
-		Byte("byte", 'h').
-		Rune("rune", 'Å').
-		Bool("bool", true).Bool("bool", false).
-		String("string", "hello").
-		Error("error", nil).Error("error", errors.New("err")).
-		Any("any", nil).Any("any", "nil").
-		Type("type", nil).Type("type", "string").
-		Print("fields")
-	log.Prefix("prefix").Info().String("key", "value").Print("prefix logging")
+	log.Info().Int("int", 123456).Print("fields")
+	log.Info().Int8("int8", -12).Print("fields")
+	log.Info().Int16("int16", 1234).Print("fields")
+	log.Info().Int32("int32", -12345678).Print("fields")
+	log.Info().Int64("int64", 1234567890).Print("fields")
+	log.Info().Uint("uint", 123456).Print("fields")
+	log.Info().Uint8("uint8", 120).Print("fields")
+	log.Info().Uint16("uint16", 12340).Print("fields")
+	log.Info().Uint32("uint32", 123456780).Print("fields")
+	log.Info().Uint64("uint64", 12345678900).Print("fields")
+	log.Info().Float32("float32", 1234.5678).Print("fields")
+	log.Info().Float64("float64", 0.123456789).Print("fields")
+	log.Info().Byte("byte", 'h').Print("fields")
+	log.Info().Rune("rune", 'Å').Print("fields")
+	log.Info().Bool("bool", true).Print("fields")
+	log.Info().Bool("bool", false).Print("fields")
+	log.Info().String("string", "hello").Print("fields")
+	log.Info().Error("error", nil).Print("fields")
+	log.Info().Error("error", errors.New("err")).Print("fields")
+	log.Info().Any("any", nil).Print("fields")
+	log.Info().Any("any", "nil").Print("fields")
+	log.Info().Type("type", nil).Print("fields")
+	log.Info().Type("type", "string").Print("fields")
+	log.Info().Duration("duration", time.Millisecond*1200).Print("fields")
+	log.Info().String("$name", "hello").Print("fields")
+	log.Info().String("name of", "hello").Print("fields")
+	log.Prefix("prefix").Info().
+		String("k1", "v1").
+		Int("k2", 2).
+		Print("prefix logging")
 	log.Debug().String("key", "value").Print("not output")
 	log.Shutdown()
 	fmt.Print(writer.buf.String())
 	// Output:
-	// [INFO] (testing) {int:123456 int8:-12 int16:1234 int32:-12345678 int64:1234567890 uint:123456 uint8:120 uint16:12340 uint32:123456780 uint64:12345678900 float32:1234.5677 float64:0.123456789 byte:h rune:Å bool:true bool:false string:hello error:<nil> error:err any:<nil> any:nil type:nil type:string} fields
-	// [INFO] (testing/prefix) {key:value} prefix logging
+	// [INFO] (testing) {int:123456} fields
+	// [INFO] (testing) {int8:-12} fields
+	// [INFO] (testing) {int16:1234} fields
+	// [INFO] (testing) {int32:-12345678} fields
+	// [INFO] (testing) {int64:1234567890} fields
+	// [INFO] (testing) {uint:123456} fields
+	// [INFO] (testing) {uint8:120} fields
+	// [INFO] (testing) {uint16:12340} fields
+	// [INFO] (testing) {uint32:123456780} fields
+	// [INFO] (testing) {uint64:12345678900} fields
+	// [INFO] (testing) {float32:1234.5677} fields
+	// [INFO] (testing) {float64:0.123456789} fields
+	// [INFO] (testing) {byte:'h'} fields
+	// [INFO] (testing) {rune:'Å'} fields
+	// [INFO] (testing) {bool:true} fields
+	// [INFO] (testing) {bool:false} fields
+	// [INFO] (testing) {string:"hello"} fields
+	// [INFO] (testing) {error:nil} fields
+	// [INFO] (testing) {error:"err"} fields
+	// [INFO] (testing) {any:nil} fields
+	// [INFO] (testing) {any:"nil"} fields
+	// [INFO] (testing) {type:"nil"} fields
+	// [INFO] (testing) {type:"string"} fields
+	// [INFO] (testing) {duration:1.2s} fields
+	// [INFO] (testing) {$name:"hello"} fields
+	// [INFO] (testing) {"name of":"hello"} fields
+	// [INFO] (testing/prefix) {k1:"v1" k2:2} prefix logging
 }
 
 func benchmarkSetup(b *testing.B) {
@@ -95,8 +129,9 @@ func BenchmarkFormattingFields(b *testing.B) {
 		log.Info().
 			Int("int", 123456).
 			Uint("uint", 123456).
-			//Float64("float64", 0.123456789).
+			Float64("float64", 0.123456789).
 			String("string", "hello").
+			Duration("duration", time.Microsecond*1234567890).
 			Print("benchmark fields")
 	}
 	benchmarkTeardown(b)
