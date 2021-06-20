@@ -2,6 +2,7 @@ package log_test
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"testing"
@@ -40,7 +41,7 @@ func TestWriter(t *testing.T) {
 
 func ExampleFields() {
 	writer := new(testingLogWriter)
-	log.Start(log.WithWriters(writer), log.WithLevel(log.LvTRACE), log.WithPrefix("testing"))
+	log.Start(log.WithWriters(writer), log.WithLevel(log.LvINFO), log.WithPrefix("testing"))
 	log.Info().
 		Int("int", 123456).
 		Int8("int8", -12).
@@ -56,14 +57,19 @@ func ExampleFields() {
 		Float64("float64", 0.123456789).
 		Byte("byte", 'h').
 		Rune("rune", 'Å').
-		Bool("bool1", true).
-		Bool("bool2", false).
+		Bool("bool", true).Bool("bool", false).
 		String("string", "hello").
+		Error("error", nil).Error("error", errors.New("err")).
+		Any("any", nil).Any("any", "nil").
+		Type("type", nil).Type("type", "string").
 		Printf("fields")
+	log.Prefix("prefix").Info().String("key", "value").Printf("prefix logging")
+	log.Debug().String("key", "value").Printf("not output")
 	log.Shutdown()
 	fmt.Print(writer.buf.String())
 	// Output:
-	// [INFO] (testing) {int:123456 int8:-12 int16:1234 int32:-12345678 int64:1234567890 uint:123456 uint8:120 uint16:12340 uint32:123456780 uint64:12345678900 float32:1234.5677 float64:0.123456789 byte:h rune:Å bool1:true bool2:false string:hello} fields
+	// [INFO] (testing) {int:123456 int8:-12 int16:1234 int32:-12345678 int64:1234567890 uint:123456 uint8:120 uint16:12340 uint32:123456780 uint64:12345678900 float32:1234.5677 float64:0.123456789 byte:h rune:Å bool:true bool:false string:hello error:<nil> error:err any:<nil> any:nil type:nil type:string} fields
+	// [INFO] (testing/prefix) {key:value} prefix logging
 }
 
 // testFS implements File interface

@@ -194,3 +194,48 @@ func (fields *Fields) String(key string, value string) *Fields {
 	}
 	return fields
 }
+
+func (fields *Fields) Error(key string, value error) *Fields {
+	if fields != nil {
+		fields.writeKey(key)
+		if value == nil {
+			fields.builder.writeString("<nil>")
+		} else {
+			fields.builder.writeString(value.Error())
+		}
+	}
+	return fields
+}
+
+func (fields *Fields) Any(key string, value interface{}) *Fields {
+	if fields != nil {
+		fields.writeKey(key)
+		if value == nil {
+			fields.builder.writeString("<nil>")
+		} else {
+			switch x := value.(type) {
+			case string:
+				fields.builder.writeString(x)
+			case error:
+				fields.builder.writeString(x.Error())
+			case fmt.Stringer:
+				fields.builder.writeString(x.String())
+			default:
+				fmt.Fprintf(&fields.builder, "%v", value)
+			}
+		}
+	}
+	return fields
+}
+
+func (fields *Fields) Type(key string, value interface{}) *Fields {
+	if fields != nil {
+		fields.writeKey(key)
+		if value == nil {
+			fields.builder.writeString("nil")
+		} else {
+			fmt.Fprintf(&fields.builder, "%T", value)
+		}
+	}
+	return fields
+}
