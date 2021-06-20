@@ -32,6 +32,16 @@ const (
 	numLevel = 6
 )
 
+const levelBytes = "FEWIDT"
+
+func getLevelByte(level Level) byte {
+	i := int(level - LvFATAL)
+	if i < 0 || i >= len(levelBytes) {
+		return 'X'
+	}
+	return levelBytes[i]
+}
+
 var errUnrecognizedLogLevel = errors.New("unrecognized log level")
 
 func (level Level) index() int { return int(level - 1) }
@@ -196,6 +206,7 @@ func stack(calldepth int) []byte {
 			count++
 			if count == ignorelinenum {
 				startIndex = i + 1
+				break
 			}
 		}
 	}
@@ -395,11 +406,11 @@ func (p *printer) formatHeader(now time.Time, level Level, file string, line int
 		year, month, day     = now.Date()
 		hour, minute, second = now.Clock()
 		millisecond          = now.Nanosecond() / 1000000
-		noCaller             = len(file) == 0
+		caller               = len(file) > 0
 	)
 	e.timestamp = now.Unix()
 	e.tmp[0] = '['
-	e.tmp[1] = level.String()[0]
+	e.tmp[1] = getLevelByte(level)
 	e.tmp[2] = ' '
 	fourDigits(e, 3, year)
 	e.tmp[7] = '/'
@@ -416,7 +427,7 @@ func (p *printer) formatHeader(now time.Time, level Level, file string, line int
 	threeDigits(e, 23, millisecond)
 	e.tmp[26] = ']'
 	e.tmp[27] = ' '
-	if !noCaller {
+	if caller {
 		e.tmp[28] = '['
 		e.Write(e.tmp[:29])
 		e.WriteString(file)
@@ -434,20 +445,20 @@ func (p *printer) formatHeader(now time.Time, level Level, file string, line int
 
 func (p *printer) header(level Level, calldepth int) *entry {
 	var (
-		file     string
-		line     int
-		ok       bool
-		noCaller = atomic.LoadInt32(&p.caller) == 0
+		file   string
+		line   int
+		ok     bool
+		caller = atomic.LoadInt32(&p.caller) != 0
 	)
-	if !noCaller {
+	if caller {
 		_, file, line, ok = runtime.Caller(calldepth)
 	}
 	if !ok {
-		if !noCaller {
+		if caller {
 			file = "???"
 			line = 0
 		}
-	} else {
+	} else if level.MoreVerboseThan(LvWARN) {
 		slash := strings.LastIndex(file, "/")
 		if slash >= 0 {
 			file = file[slash+1:]
