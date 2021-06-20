@@ -7,24 +7,7 @@ import (
 )
 
 type builder struct {
-	addr *builder // of receiver, to detect copies by value
-	buf  []byte
-}
-
-// noescape hides a pointer from escape analysis.
-//go:nosplit
-//go:nocheckptr
-func noescape(p unsafe.Pointer) unsafe.Pointer {
-	x := uintptr(p)
-	return unsafe.Pointer(x ^ 0)
-}
-
-func (b *builder) copyCheck() {
-	if b.addr == nil {
-		b.addr = (*builder)(noescape(unsafe.Pointer(b)))
-	} else if b.addr != b {
-		panic("illegal use of non-zero builder copied by value")
-	}
+	buf []byte
 }
 
 // String returns the accumulated string.
@@ -41,8 +24,7 @@ func (b *builder) Len() int { return len(b.buf) }
 func (b *builder) Cap() int { return cap(b.buf) }
 
 func (b *builder) reset() {
-	b.addr = nil
-	b.buf = nil
+	b.buf = b.buf[:0]
 }
 
 // grow copies the buffer to a new, larger buffer so that there are at least n
@@ -54,18 +36,15 @@ func (b *builder) grow(n int) {
 }
 
 func (b *builder) Write(p []byte) (int, error) {
-	b.copyCheck()
 	b.buf = append(b.buf, p...)
 	return len(p), nil
 }
 
 func (b *builder) writeByte(c byte) {
-	b.copyCheck()
 	b.buf = append(b.buf, c)
 }
 
 func (b *builder) writeRune(r rune) {
-	b.copyCheck()
 	if r < utf8.RuneSelf {
 		b.buf = append(b.buf, byte(r))
 		return
@@ -79,31 +58,25 @@ func (b *builder) writeRune(r rune) {
 }
 
 func (b *builder) writeString(s string) {
-	b.copyCheck()
 	b.buf = append(b.buf, s...)
 }
 
 func (b *builder) writeInt(i int64) {
-	b.copyCheck()
 	b.buf = strconv.AppendInt(b.buf, i, 10)
 }
 
 func (b *builder) writeUint(i uint64) {
-	b.copyCheck()
 	b.buf = strconv.AppendUint(b.buf, i, 10)
 }
 
 func (b *builder) writeFloat32(f float32) {
-	b.copyCheck()
 	b.buf = strconv.AppendFloat(b.buf, float64(f), 'f', -1, 32)
 }
 
 func (b *builder) writeFloat64(f float64) {
-	b.copyCheck()
 	b.buf = strconv.AppendFloat(b.buf, f, 'f', -1, 64)
 }
 
 func (b *builder) writeBool(v bool) {
-	b.copyCheck()
 	b.buf = strconv.AppendBool(b.buf, v)
 }

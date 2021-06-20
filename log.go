@@ -369,7 +369,7 @@ func (p *printer) Printf(calldepth int, level Level, prefix, format string, args
 }
 
 func (p *printer) writeEntry(e *entry) {
-	p.writer.Write(e.level, e.Bytes(), e.headerLen)
+	p.writer.Write(e.level, e.Bytes(), e.header)
 	p.putEntry(e)
 }
 
@@ -405,10 +405,9 @@ func (p *printer) formatHeader(now time.Time, level Level, file string, line int
 		e                    = p.getEntry()
 		year, month, day     = now.Date()
 		hour, minute, second = now.Clock()
-		millisecond          = now.Nanosecond() / 1000000
+		millisecond          = now.Nanosecond() / 1e6
 		caller               = len(file) > 0
 	)
-	e.timestamp = now.Unix()
 	e.tmp[0] = '['
 	e.tmp[1] = getLevelByte(level)
 	e.tmp[2] = ' '
@@ -469,7 +468,7 @@ func (p *printer) header(level Level, calldepth int) *entry {
 
 func (p *printer) output(level Level, calldepth int, prefix, format string, args ...interface{}) {
 	e := p.header(level, calldepth+3)
-	e.headerLen = e.Len()
+	e.header = e.Len()
 	if len(p.prefix) > 0 {
 		e.WriteString("(")
 		e.WriteString(p.prefix)
@@ -484,7 +483,7 @@ func (p *printer) output(level Level, calldepth int, prefix, format string, args
 		e.WriteString(") ")
 	}
 	if len(args) == 0 {
-		fmt.Fprint(e, format)
+		e.WriteString(format)
 	} else {
 		fmt.Fprintf(e, format, args...)
 	}

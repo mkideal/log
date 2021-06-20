@@ -6,31 +6,18 @@ import (
 
 type entry struct {
 	bytes.Buffer
-	tmp       [32]byte
-	next      *entry
-	level     Level
-	headerLen int
-	timestamp int64
+	tmp    [32]byte
+	next   *entry
+	level  Level
+	header int
 }
 
 func (e *entry) Reset() {
 	e.Buffer.Reset()
-	e.headerLen = 0
+	e.header = 0
 }
 
-func (e *entry) clone() *entry {
-	e2 := &entry{
-		level:     e.level,
-		headerLen: e.headerLen,
-		timestamp: e.timestamp,
-	}
-	e2.Buffer = bytes.Buffer{}
-	e2.Buffer.Write(e.Bytes())
-	return e2
-}
-
-func (e *entry) Level() Level     { return e.level }
-func (e *entry) Timestamp() int64 { return e.timestamp }
+func (e *entry) Level() Level { return e.level }
 
 const digits = "0123456789"
 

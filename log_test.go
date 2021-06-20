@@ -11,15 +11,18 @@ import (
 )
 
 type testingLogWriter struct {
-	buf bytes.Buffer
+	discard bool
+	buf     bytes.Buffer
 }
 
 func (w *testingLogWriter) Write(level log.Level, data []byte, headerLen int) error {
-	w.buf.WriteByte('[')
-	w.buf.WriteString(level.String())
-	w.buf.WriteByte(']')
-	w.buf.WriteByte(' ')
-	w.buf.Write(data[headerLen:])
+	if !w.discard {
+		w.buf.WriteByte('[')
+		w.buf.WriteString(level.String())
+		w.buf.WriteByte(']')
+		w.buf.WriteByte(' ')
+		w.buf.Write(data[headerLen:])
+	}
 	return nil
 }
 
@@ -70,6 +73,33 @@ func ExampleFields() {
 	// Output:
 	// [INFO] (testing) {int:123456 int8:-12 int16:1234 int32:-12345678 int64:1234567890 uint:123456 uint8:120 uint16:12340 uint32:123456780 uint64:12345678900 float32:1234.5677 float64:0.123456789 byte:h rune:Å bool:true bool:false string:hello error:<nil> error:err any:<nil> any:nil type:nil type:string} fields
 	// [INFO] (testing/prefix) {key:value} prefix logging
+}
+
+func benchmarkSetup(b *testing.B) {
+	b.StopTimer()
+	writer := new(testingLogWriter)
+	writer.discard = true
+	log.Start(log.WithWriters(writer), log.WithSync(true), log.WithLevel(log.LvINFO), log.WithCaller(false))
+	b.StartTimer()
+}
+
+func benchmarkTeardown(b *testing.B) {
+	b.StopTimer()
+	log.Shutdown()
+	b.StartTimer()
+}
+
+func BenchmarkFormattingFields(b *testing.B) {
+	benchmarkSetup(b)
+	for i := 0; i < b.N; i++ {
+		log.Info().
+			Int("int", 123456).
+			Uint("uint", 123456).
+			//Float64("float64", 0.123456789).
+			String("string", "hello").
+			Printf("benchmark fields")
+	}
+	benchmarkTeardown(b)
 }
 
 // testFS implements File interface
