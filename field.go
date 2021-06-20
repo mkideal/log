@@ -49,20 +49,16 @@ func (fields *Fields) writeKey(key string) {
 	fields.builder.writeByte(':')
 }
 
-// Printf prints logging with context fields. After this call,
+// Print prints logging with context fields. After this call,
 // the fields not available.
-func (fields *Fields) Printf(format string, args ...interface{}) {
+func (fields *Fields) Print(s string) {
 	if fields == nil {
 		return
 	}
 	if fields.builder.Len() > 0 {
 		fields.builder.writeString("} ")
 	}
-	if len(args) == 0 {
-		fields.builder.writeString(format)
-	} else {
-		fmt.Fprintf(&fields.builder, format, args...)
-	}
+	fields.builder.writeString(s)
 	gprinter.Printf(1, fields.level, fields.prefix, fields.builder.String())
 	putFields(fields)
 }

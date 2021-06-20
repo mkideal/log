@@ -33,7 +33,7 @@ func TestWriter(t *testing.T) {
 	log.Start(log.WithWriters(writer), log.WithLevel(log.LvTRACE), log.WithPrefix("testing"))
 	log.Printf(log.LvTRACE, "hello %s", "log")
 	logger := log.Prefix("prefix")
-	logger.Debug().Printf("hello world")
+	logger.Debug().Print("hello world")
 	log.Shutdown()
 	got := writer.buf.String()
 	want := "[TRACE] (testing) hello log\n[DEBUG] (testing/prefix) hello world\n"
@@ -65,9 +65,9 @@ func ExampleFields() {
 		Error("error", nil).Error("error", errors.New("err")).
 		Any("any", nil).Any("any", "nil").
 		Type("type", nil).Type("type", "string").
-		Printf("fields")
-	log.Prefix("prefix").Info().String("key", "value").Printf("prefix logging")
-	log.Debug().String("key", "value").Printf("not output")
+		Print("fields")
+	log.Prefix("prefix").Info().String("key", "value").Print("prefix logging")
+	log.Debug().String("key", "value").Print("not output")
 	log.Shutdown()
 	fmt.Print(writer.buf.String())
 	// Output:
@@ -97,7 +97,7 @@ func BenchmarkFormattingFields(b *testing.B) {
 			Uint("uint", 123456).
 			//Float64("float64", 0.123456789).
 			String("string", "hello").
-			Printf("benchmark fields")
+			Print("benchmark fields")
 	}
 	benchmarkTeardown(b)
 }
