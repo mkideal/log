@@ -69,6 +69,7 @@ func ExampleFields() {
 	log.Info().Any("any", "nil").Print("fields")
 	log.Info().Type("type", nil).Print("fields")
 	log.Info().Type("type", "string").Print("fields")
+	log.Info().Type("type", new(int)).Print("fields")
 	log.Info().Duration("duration", time.Millisecond*1200).Print("fields")
 	log.Info().String("$name", "hello").Print("fields")
 	log.Info().String("name of", "hello").Print("fields")
@@ -103,6 +104,7 @@ func ExampleFields() {
 	// [INFO] (testing) {any:"nil"} fields
 	// [INFO] (testing) {type:"nil"} fields
 	// [INFO] (testing) {type:"string"} fields
+	// [INFO] (testing) {type:"*int"} fields
 	// [INFO] (testing) {duration:1.2s} fields
 	// [INFO] (testing) {$name:"hello"} fields
 	// [INFO] (testing) {"name of":"hello"} fields
