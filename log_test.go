@@ -27,12 +27,12 @@ func (w *testingLogWriter) Close() error { return nil }
 func TestWriter(t *testing.T) {
 	writer := new(testingLogWriter)
 	log.Start(log.WithWriters(writer), log.WithLevel(log.LvTRACE), log.WithPrefix("testing"))
-	log.Printf(1, log.LvTRACE, "prefix", "hello %s", "log")
-	logger := log.NewLogger("with-prefix")
-	logger.Debug("hello world")
+	log.Printf(log.LvTRACE, "hello %s", "log")
+	logger := log.Prefix("prefix")
+	logger.Debug().Printf("hello world")
 	log.Shutdown()
 	got := writer.buf.String()
-	want := "[TRACE] (testing/prefix) hello log\n[DEBUG] (testing/with-prefix) hello world\n"
+	want := "[TRACE] (testing) hello log\n[DEBUG] (testing/prefix) hello world\n"
 	if got != want {
 		t.Errorf("want %q, but got %q", want, got)
 	}
@@ -41,7 +41,7 @@ func TestWriter(t *testing.T) {
 func ExampleFields() {
 	writer := new(testingLogWriter)
 	log.Start(log.WithWriters(writer), log.WithLevel(log.LvTRACE), log.WithPrefix("testing"))
-	log.For(log.LvINFO).
+	log.Info().
 		Int("int", 123456).
 		Int8("int8", -12).
 		Int16("int16", 1234).

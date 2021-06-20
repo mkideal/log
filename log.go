@@ -749,93 +749,56 @@ func SetLevel(level Level) {
 	gprinter.SetLevel(level)
 }
 
-// Trace prints log with trace level
-func Trace(format string, args ...interface{}) {
-	gprinter.Printf(1, LvTRACE, "", format, args...)
-}
-
-// Debug prints log with level debug
-func Debug(format string, args ...interface{}) {
-	gprinter.Printf(1, LvDEBUG, "", format, args...)
-}
-
-// Info prints log with level info
-func Info(format string, args ...interface{}) {
-	gprinter.Printf(1, LvINFO, "", format, args...)
-}
-
-// Warn prints log with level warning
-func Warn(format string, args ...interface{}) {
-	gprinter.Printf(1, LvWARN, "", format, args...)
-}
-
-// Error prints log with level error
-func Error(format string, args ...interface{}) {
-	gprinter.Printf(1, LvERROR, "", format, args...)
-}
-
-// Fatal prints log with level fatal
-func Fatal(format string, args ...interface{}) {
-	gprinter.Printf(1, LvFATAL, "", format, args...)
-}
-
-// Printf wraps the global printer Printf method
-func Printf(calldepth int, level Level, prefix, format string, args ...interface{}) {
+// Log is a low-level API to print logging
+func Log(calldepth int, level Level, prefix, format string, args ...interface{}) {
 	gprinter.Printf(calldepth, level, prefix, format, args...)
 }
 
-// NewLogger creates a logger with a extra prefix print logging to global printer
-func NewLogger(prefix string) Logger {
-	return logger{prefix: prefix}
+// Trace creates a context fields with level trace
+func Trace() *Fields { return getFields(LvTRACE, "") }
+
+// Debug creates a context fields with level debug
+func Debug() *Fields { return getFields(LvDEBUG, "") }
+
+// Info creates a context fields with level info
+func Info() *Fields { return getFields(LvINFO, "") }
+
+// Warn creates a context fields with level warn
+func Warn() *Fields { return getFields(LvWARN, "") }
+
+// Error creates a context fields with level error
+func Error() *Fields { return getFields(LvERROR, "") }
+
+// Fatal creates a context fields with level fatal
+func Fatal() *Fields { return getFields(LvFATAL, "") }
+
+// Printf wraps the global printer Printf method
+func Printf(level Level, format string, args ...interface{}) {
+	gprinter.Printf(1, level, "", format, args...)
 }
 
-// Logger represents basic logger interface
-type Logger interface {
-	// Trace outputs trace-level logs
-	Trace(format string, args ...interface{})
-	// Debug outputs debug-level logs
-	Debug(format string, args ...interface{})
-	// Info outputs info-level logs
-	Info(format string, args ...interface{})
-	// Warn outputs warn-level logs
-	Warn(format string, args ...interface{})
-	// Error outputs error-level logs
-	Error(format string, args ...interface{})
-	// Fatal outputs fatal-level logs
-	Fatal(format string, args ...interface{})
-}
+// Prefix wraps a string as a prefixed logger
+type Prefix string
 
-// logger implements Logger to prints logging with extra prefix to global printer
-type logger struct {
-	prefix string
-}
+// Trace creates a context fields with level trace
+func (p Prefix) Trace() *Fields { return getFields(LvTRACE, p) }
 
-// Trace implements Logger Trace method
-func (l logger) Trace(format string, args ...interface{}) {
-	gprinter.Printf(1, LvTRACE, l.prefix, format, args...)
-}
+// Debug creates a context fields with level debug
+func (p Prefix) Debug() *Fields { return getFields(LvDEBUG, p) }
 
-// Debug implements Logger Debug method
-func (l logger) Debug(format string, args ...interface{}) {
-	gprinter.Printf(1, LvDEBUG, l.prefix, format, args...)
-}
+// Info creates a context fields with level info
+func (p Prefix) Info() *Fields { return getFields(LvINFO, p) }
 
-// Info implements Logger Info method
-func (l logger) Info(format string, args ...interface{}) {
-	gprinter.Printf(1, LvINFO, l.prefix, format, args...)
-}
+// Warn creates a context fields with level warn
+func (p Prefix) Warn() *Fields { return getFields(LvWARN, p) }
 
-// Warn implements Logger Warn method
-func (l logger) Warn(format string, args ...interface{}) {
-	gprinter.Printf(1, LvWARN, l.prefix, format, args...)
-}
+// Error creates a context fields with level error
+func (p Prefix) Error() *Fields { return getFields(LvERROR, p) }
 
-// Error implements Logger Error method
-func (l logger) Error(format string, args ...interface{}) {
-	gprinter.Printf(1, LvERROR, l.prefix, format, args...)
-}
+// Fatal creates a context fields with level fatal
+func (p Prefix) Fatal() *Fields { return getFields(LvFATAL, p) }
 
-// Fatal implements Logger Fatal method
-func (l logger) Fatal(format string, args ...interface{}) {
-	gprinter.Printf(1, LvFATAL, l.prefix, format, args...)
+// Printf wraps the global printer Printf method
+func (p Prefix) Printf(level Level, format string, args ...interface{}) {
+	gprinter.Printf(1, level, string(p), format, args...)
 }

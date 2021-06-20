@@ -5,8 +5,10 @@ import (
 	"sync"
 )
 
+// Fields holds context fields
 type Fields struct {
 	level   Level
+	prefix  string
 	builder builder
 }
 
@@ -16,9 +18,12 @@ var fieldsPool = sync.Pool{
 	},
 }
 
-func getFields(level Level) *Fields {
+func getFields(level Level, prefix Prefix) *Fields {
+	if gprinter.GetLevel() < level {
+		return nil
+	}
 	fields := fieldsPool.Get().(*Fields)
-	fields.reset(level)
+	fields.reset(level, string(prefix))
 	return fields
 }
 
@@ -28,15 +33,9 @@ func putFields(fields *Fields) {
 	}
 }
 
-func For(level Level) *Fields {
-	if gprinter.GetLevel() >= level {
-		return getFields(level)
-	}
-	return nil
-}
-
-func (fields *Fields) reset(level Level) {
+func (fields *Fields) reset(level Level, prefix string) {
 	fields.level = level
+	fields.prefix = prefix
 	fields.builder.reset()
 }
 
@@ -50,6 +49,8 @@ func (fields *Fields) writeKey(key string) {
 	fields.builder.writeByte(':')
 }
 
+// Printf prints logging with context fields. After this call,
+// the fields not available.
 func (fields *Fields) Printf(format string, args ...interface{}) {
 	if fields == nil {
 		return
@@ -62,7 +63,7 @@ func (fields *Fields) Printf(format string, args ...interface{}) {
 	} else {
 		fmt.Fprintf(&fields.builder, format, args...)
 	}
-	gprinter.Printf(1, fields.level, "", fields.builder.String())
+	gprinter.Printf(1, fields.level, fields.prefix, fields.builder.String())
 	putFields(fields)
 }
 
