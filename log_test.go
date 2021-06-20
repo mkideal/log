@@ -115,7 +115,7 @@ func benchmarkSetup(b *testing.B) {
 	b.StopTimer()
 	writer := new(testingLogWriter)
 	writer.discard = true
-	log.Start(log.WithWriters(writer), log.WithSync(true), log.WithLevel(log.LvINFO), log.WithCaller(false))
+	log.Start(log.WithWriters(writer), log.WithSync(true), log.WithLevel(log.LvINFO))
 	b.StartTimer()
 }
 
