@@ -184,6 +184,22 @@ func (fields *Fields) Float64(key string, value float64) *Fields {
 	return fields
 }
 
+func (fields *Fields) Complex64(key string, value complex64) *Fields {
+	if fields != nil {
+		fields.writeKey(key)
+		fields.builder.writeComplex64(value)
+	}
+	return fields
+}
+
+func (fields *Fields) Complex128(key string, value complex128) *Fields {
+	if fields != nil {
+		fields.writeKey(key)
+		fields.builder.writeComplex128(value)
+	}
+	return fields
+}
+
 func (fields *Fields) Byte(key string, value byte) *Fields {
 	if fields != nil {
 		fields.writeKey(key)
@@ -244,11 +260,51 @@ func (fields *Fields) Any(key string, value interface{}) *Fields {
 			case string:
 				fields.builder.writeQuotedString(x)
 			default:
-				fmt.Fprintf(&fields.builder, "%q", value)
+				if !fields.tryWriteScalar(value) {
+					fmt.Fprintf(&fields.builder, "%q", value)
+				}
 			}
 		}
 	}
 	return fields
+}
+
+func (fields *Fields) tryWriteScalar(value interface{}) bool {
+	switch x := value.(type) {
+	case int:
+		fields.builder.writeInt(int64(x))
+	case int8:
+		fields.builder.writeInt(int64(x))
+	case int16:
+		fields.builder.writeInt(int64(x))
+	case int32:
+		fields.builder.writeInt(int64(x))
+	case int64:
+		fields.builder.writeInt(x)
+	case uint:
+		fields.builder.writeUint(uint64(x))
+	case uint8:
+		fields.builder.writeUint(uint64(x))
+	case uint16:
+		fields.builder.writeUint(uint64(x))
+	case uint32:
+		fields.builder.writeUint(uint64(x))
+	case uint64:
+		fields.builder.writeUint(x)
+	case float32:
+		fields.builder.writeFloat32(x)
+	case float64:
+		fields.builder.writeFloat64(x)
+	case bool:
+		fields.builder.writeBool(x)
+	case complex64:
+		fields.builder.writeComplex64(x)
+	case complex128:
+		fields.builder.writeComplex128(x)
+	default:
+		return false
+	}
+	return true
 }
 
 func (fields *Fields) Type(key string, value interface{}) *Fields {

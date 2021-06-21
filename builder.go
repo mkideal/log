@@ -84,3 +84,31 @@ func (b *builder) writeFloat64(f float64) {
 func (b *builder) writeBool(v bool) {
 	b.buf = strconv.AppendBool(b.buf, v)
 }
+
+func (b *builder) writeComplex64(c complex64) {
+	r, i := real(c), imag(c)
+	if r != 0 {
+		b.writeFloat32(r)
+	}
+	if i != 0 {
+		if r != 0 {
+			b.buf = append(b.buf, '+')
+		}
+		b.writeFloat32(i)
+		b.buf = append(b.buf, 'i')
+	}
+}
+
+func (b *builder) writeComplex128(c complex128) {
+	r, i := real(c), imag(c)
+	if r != 0 {
+		b.writeFloat64(r)
+	}
+	if i != 0 {
+		if r != 0 {
+			b.buf = append(b.buf, '+')
+		}
+		b.writeFloat64(i)
+		b.buf = append(b.buf, 'i')
+	}
+}

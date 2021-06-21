@@ -58,6 +58,9 @@ func ExampleFields() {
 	log.Info().Uint64("uint64", 12345678900).Print("fields")
 	log.Info().Float32("float32", 1234.5678).Print("fields")
 	log.Info().Float64("float64", 0.123456789).Print("fields")
+	log.Info().Complex64("complex64", 1+2i).Print("fields")
+	log.Info().Complex128("complex128", 1).Print("fields")
+	log.Info().Complex128("complex128", 2i).Print("fields")
 	log.Info().Byte("byte", 'h').Print("fields")
 	log.Info().Rune("rune", 'Å').Print("fields")
 	log.Info().Bool("bool", true).Print("fields")
@@ -93,6 +96,9 @@ func ExampleFields() {
 	// [INFO] (testing) {uint64:12345678900} fields
 	// [INFO] (testing) {float32:1234.5677} fields
 	// [INFO] (testing) {float64:0.123456789} fields
+	// [INFO] (testing) {complex64:1+2i} fields
+	// [INFO] (testing) {complex128:1} fields
+	// [INFO] (testing) {complex128:2i} fields
 	// [INFO] (testing) {byte:'h'} fields
 	// [INFO] (testing) {rune:'Å'} fields
 	// [INFO] (testing) {bool:true} fields
