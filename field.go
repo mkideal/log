@@ -261,7 +261,7 @@ func (fields *Fields) Any(key string, value interface{}) *Fields {
 				fields.builder.writeQuotedString(x)
 			default:
 				if !fields.tryWriteScalar(value) {
-					fmt.Fprintf(&fields.builder, "%q", value)
+					fields.builder.writeQuotedString(fmt.Sprintf("%v", value))
 				}
 			}
 		}
@@ -327,12 +327,32 @@ func (fields *Fields) Exec(key string, stringer func() string) *Fields {
 	return fields
 }
 
-func (fields *Fields) Time(key string, value time.Time) *Fields {
+func (fields *Fields) writeTime(key string, value time.Time, layout string) *Fields {
 	if fields != nil {
 		fields.writeKey(key)
-		fields.builder.buf = value.AppendFormat(fields.builder.buf, time.RFC3339Nano)
+		fields.builder.buf = value.AppendFormat(fields.builder.buf, layout)
 	}
 	return fields
+}
+
+func (fields *Fields) Date(key string, value time.Time) *Fields {
+	return fields.writeTime(key, value, "2006-01-02Z07:00")
+}
+
+func (fields *Fields) Time(key string, value time.Time) *Fields {
+	return fields.writeTime(key, value, time.RFC3339Nano)
+}
+
+func (fields *Fields) Seconds(key string, value time.Time) *Fields {
+	return fields.writeTime(key, value, time.RFC3339)
+}
+
+func (fields *Fields) Milliseconds(key string, value time.Time) *Fields {
+	return fields.writeTime(key, value, "2006-01-02T15:04:05.999Z07:00")
+}
+
+func (fields *Fields) Microseconds(key string, value time.Time) *Fields {
+	return fields.writeTime(key, value, "2006-01-02T15:04:05.999999Z07:00")
 }
 
 func (fields *Fields) Duration(key string, value time.Duration) *Fields {

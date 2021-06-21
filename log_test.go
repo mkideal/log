@@ -70,9 +70,25 @@ func ExampleFields() {
 	log.Info().Error("error", errors.New("err")).Print("fields")
 	log.Info().Any("any", nil).Print("fields")
 	log.Info().Any("any", "nil").Print("fields")
+	log.Info().Any("any", struct {
+		x int
+		y string
+	}{1, "hello"}).Print("fields")
 	log.Info().Type("type", nil).Print("fields")
 	log.Info().Type("type", "string").Print("fields")
 	log.Info().Type("type", new(int)).Print("fields")
+	const (
+		year  = 2020
+		month = time.May
+		day   = 1
+		hour  = 12
+		min   = 20
+		sec   = 30
+		nsec  = 123456789
+	)
+	t := time.Date(year, month, day, hour, min, sec, nsec, time.Local)
+	log.Info().Date("date", t).Print("fields")
+	log.Info().Time("time", t).Print("fields")
 	log.Info().Duration("duration", time.Millisecond*1200).Print("fields")
 	log.Info().String("$name", "hello").Print("fields")
 	log.Info().String("name of", "hello").Print("fields")
@@ -108,9 +124,12 @@ func ExampleFields() {
 	// [INFO] (testing) {error:"err"} fields
 	// [INFO] (testing) {any:nil} fields
 	// [INFO] (testing) {any:"nil"} fields
+	// [INFO] (testing) {any:"{1 hello}"} fields
 	// [INFO] (testing) {type:"nil"} fields
 	// [INFO] (testing) {type:"string"} fields
 	// [INFO] (testing) {type:"*int"} fields
+	// [INFO] (testing) {date:2020-05-01+08:00} fields
+	// [INFO] (testing) {time:2020-05-01T12:20:30.123456789+08:00} fields
 	// [INFO] (testing) {duration:1.2s} fields
 	// [INFO] (testing) {$name:"hello"} fields
 	// [INFO] (testing) {"name of":"hello"} fields
