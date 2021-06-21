@@ -863,3 +863,8 @@ func (p Prefix) Fatal() *Fields { return getFields(LvFATAL, p) }
 func (p Prefix) Printf(level Level, format string, args ...interface{}) {
 	gprinter.Printf(1, level, string(p), format, args...)
 }
+
+// Prefix appends a prefix to current prefix
+func (p Prefix) Prefix(prefix string) Prefix {
+	return p + "/" + Prefix(prefix)
+}
