@@ -372,9 +372,7 @@ func (p *printer) SetPrefix(prefix string) {
 
 // Printf implements Printer Printf method
 func (p *printer) Printf(calldepth int, level Level, prefix, format string, args ...interface{}) {
-	if p.GetLevel() >= level {
-		p.output(level, calldepth, prefix, format, args...)
-	}
+	p.output(level, calldepth, prefix, format, args...)
 	if level == LvFATAL {
 		p.Shutdown()
 		os.Exit(1)
@@ -592,23 +590,21 @@ func (stdPrinter) SetFlags(flags int) {
 	if flags&LUTC != 0 {
 		stdFlags |= std.LUTC
 	}
-	std.SetFlags(flags | std.Lmsgprefix)
+	std.SetFlags(stdFlags | std.Lmsgprefix)
 }
 
 // GetLevel implements Printer GetLevel method
-func (p stdPrinter) GetLevel() Level { return Level(atomic.LoadInt32((*int32)(&p.level))) }
+func (p *stdPrinter) GetLevel() Level { return Level(atomic.LoadInt32((*int32)(&p.level))) }
 
 // SetLevel implements Printer SetLevel method
 func (p *stdPrinter) SetLevel(level Level) { atomic.StoreInt32((*int32)(&p.level), int32(level)) }
 
 // Printf implements Printer Printf method
-func (p stdPrinter) Printf(calldepth int, level Level, prefix, format string, args ...interface{}) {
-	if p.GetLevel() >= level {
-		p.output(calldepth, level, prefix+format, args...)
-	}
+func (p *stdPrinter) Printf(calldepth int, level Level, prefix, format string, args ...interface{}) {
+	p.output(calldepth, level, prefix+format, args...)
 }
 
-func (p stdPrinter) output(calldepth int, level Level, format string, args ...interface{}) {
+func (p *stdPrinter) output(calldepth int, level Level, format string, args ...interface{}) {
 	if level != LvFATAL {
 		if len(args) == 0 {
 			std.Output(calldepth+3, format)
@@ -736,9 +732,14 @@ func WithWriters(writers ...Writer) Option {
 	}
 }
 
-// WithConsle appends a console writer
-func WithConsle() Option {
-	return WithWriters(newConsole())
+// WithConsole appends a console writer
+func WithConsole() Option {
+	return WithWriters(newConsole(os.Stdout, os.Stderr, LvERROR))
+}
+
+// WithOutput appends a console writer with specified io.Writer
+func WithOutput(w io.Writer) Option {
+	return WithWriters(newConsole(w, w, LvERROR))
 }
 
 // WithFile appends a file writer
@@ -812,6 +813,9 @@ func SetLevel(level Level) {
 
 // Log is a low-level API to print logging
 func Log(calldepth int, level Level, prefix, format string, args ...interface{}) {
+	if gprinter.GetLevel() < level {
+		return
+	}
 	gprinter.Printf(calldepth, level, prefix, format, args...)
 }
 
@@ -835,6 +839,9 @@ func Fatal() *Fields { return getFields(LvFATAL, "") }
 
 // Printf wraps the global printer Printf method
 func Printf(level Level, format string, args ...interface{}) {
+	if gprinter.GetLevel() < level {
+		return
+	}
 	gprinter.Printf(1, level, "", format, args...)
 }
 
@@ -861,6 +868,9 @@ func (p Prefix) Fatal() *Fields { return getFields(LvFATAL, p) }
 
 // Printf wraps the global printer Printf method
 func (p Prefix) Printf(level Level, format string, args ...interface{}) {
+	if gprinter.GetLevel() < level {
+		return
+	}
 	gprinter.Printf(1, level, string(p), format, args...)
 }
 

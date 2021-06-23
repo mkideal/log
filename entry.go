@@ -6,7 +6,7 @@ import (
 
 type entry struct {
 	bytes.Buffer
-	tmp    [32]byte
+	tmp    [64]byte
 	next   *entry
 	level  Level
 	header int

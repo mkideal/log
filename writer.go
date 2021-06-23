@@ -60,9 +60,9 @@ type console struct {
 }
 
 // newConsole creates a console writer
-func newConsole() *console {
+func newConsole(stdout, stderr io.Writer, toStderrLevel Level) *console {
 	return &console{
-		toStderrLevel: LvWARN,
+		toStderrLevel: toStderrLevel,
 		stdout:        os.Stdout,
 		stderr:        os.Stderr,
 	}
