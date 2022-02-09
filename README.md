@@ -1,4 +1,4 @@
 LOG
 ===
 
-**The `log` library is no longer maintained**, => [github.com/gopherd/log](github.com/gopherd/log)
+**The `log` library is no longer maintained**, => [https://github.com/gopherd/log](https://github.com/gopherd/log)
